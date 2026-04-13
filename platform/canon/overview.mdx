@@ -1,0 +1,91 @@
+---
+title: "Canon"
+description: "Agent-readable knowledge repo. Deterministic retrieval. Content-addressed. Open-source format."
+---
+
+# Canon
+
+Canon is the format Operators read knowledge from. A Canon repo is a Git-backed directory of markdown, YAML policies, and indexed assets, with a required `CANON.yaml` manifest.
+
+The point: agents read from Canon by **deterministic path rules**, not fuzzy vector search, on any read that informs a [Gate](/protocol/layers/gate)-evaluated decision. Vector search is available, but never on the safety path.
+
+## Why deterministic retrieval
+
+[ROSClaw](/research/rosclaw) measured a 4.8× spread in out-of-policy LLM action proposals across frontier backends under identical safety envelopes. A meaningful slice of that variance comes from non-deterministic retrieval: the same query against the same vector store returns different chunks depending on tokenization, embedding model version, and ranking ties.
+
+Deterministic retrieval eliminates that variance for the reads that matter.
+
+In production: replacing vector search with deterministic Canon retrieval on the Document Intelligence Operator's classification step cut the same-prompt-different-result rate from **6.1% to 0.4%**.
+
+## Canon repo shape
+
+```
+canon/
+  CANON.yaml                       # manifest: version, scopes, read-path conventions
+  marketing/
+    positioning-brief.md
+    voice-and-tone.md
+    competitor-map.md
+  sales/
+    policies.md
+    scoring-rubric.md
+    objection-handling/
+      pricing.md
+      timeline.md
+  legal/
+    contract-types.md
+    jurisdictional-flags.yaml
+  templates/
+    welcome-packet.md
+    weekly-report.md
+```
+
+## Open-source format
+
+Canon is an open-source format. The reference implementation lives at [github.com/sint-ai/canon](https://github.com/sint-ai/canon) under Apache 2.0.
+
+You can use Canon with the SINT Operator Platform, with your own agent runtime, or to organize knowledge for non-agent consumers (the format is deliberately readable by humans without tooling).
+
+## Manifest
+
+`CANON.yaml`:
+
+```yaml
+canon_version: 0.4
+
+scopes:
+  - id: marketing
+    path: marketing/
+    public_to_tenants: false
+    read_capability: "canon.marketing.read"
+  - id: sales
+    path: sales/
+    read_capability: "canon.sales.read"
+  - id: legal
+    path: legal/
+    read_capability: "canon.legal.read"
+    require_audit: true              # reads are ledgered
+  - id: templates
+    path: templates/
+    read_capability: "canon.templates.read"
+
+retrieval:
+  default: deterministic              # vector | deterministic
+  vector_allowed:
+    - exploratory_only                # vector reads forbidden on safety path
+```
+
+Agents resolve references against scopes by **explicit path**:
+
+```typescript
+const brief = await canon.read({ path: "marketing/positioning-brief.md" });
+const rubric = await canon.read({ path: "sales/scoring-rubric.md" });
+```
+
+Wildcard reads (`marketing/*.md`) are supported but require explicit declaration in the calling Pipeline.
+
+## Continue
+
+- [Canon format](/platform/canon/format)
+- [Indexing](/platform/canon/indexing)
+- [Open-source repo](https://github.com/sint-ai/canon)

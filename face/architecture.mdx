@@ -1,0 +1,87 @@
+---
+title: "Face architecture"
+description: "Audio in → ASR → agent → Conversation Compiler → TTS → blendshape stream → Widget Layer."
+---
+
+# Face architecture
+
+```
+Audio in (WebRTC / mic)
+   │
+   ▼
+ASR (streaming)
+   │
+   ▼
+Agent endpoint (HTTP / WS)
+   │
+   ▼
+Conversation Compiler  ← fast-LLM rewrite to speakable form
+   │
+   ▼
+TTS (ElevenLabs streaming)
+   │
+   ├─ Audio buffer ────────────► Speaker out
+   │
+   └─ Viseme extraction ──────► Blendshape stream ──► R3F rig
+                                                       │
+                                                       ▼
+                                              Mixamo body animation
+                                                       │
+                                                       ▼
+                                              AI Widget Layer (contextual UI)
+```
+
+## Stages
+
+### ASR
+
+WebRTC capture → streaming ASR. Transcripts emit incrementally to the agent endpoint with sub-100ms partial latency. Barge-in (interrupting Face mid-utterance) is supported: incoming user audio cancels the active TTS stream and notifies the agent.
+
+### Agent endpoint
+
+Face is agent-agnostic. It POSTs partial transcripts and receives streaming agent output (text + tool calls + widget spawn requests) over a WebSocket or HTTP stream.
+
+### Conversation Compiler
+
+Agent output is often not directly speakable (markdown, code, structured JSON, parenthetical asides). The Compiler is a small fast LLM that rewrites agent output into natural spoken form, preserving meaning, suppressing what shouldn't be spoken aloud (e.g. tool call IDs), and adding prosody hints.
+
+[Full Compiler doc →](/face/conversation-compiler)
+
+### TTS
+
+ElevenLabs streaming TTS. Compiler chunks emit to TTS as they arrive. Backpressure-aware: if the agent finishes faster than TTS can speak, the Compiler holds chunks for speech completion rather than cutting audio.
+
+### Viseme extraction
+
+Audio frames are analyzed for visemes (mouth-shape phonemes) which map to ARKit blendshape weights. The R3F rig applies these per frame.
+
+### R3F rig
+
+A 3D avatar with 52 ARKit blendshapes plus a Mixamo body skeleton. The rig blends facial animation (driven by visemes) with body animation (driven by semantic classification of the current utterance — question, statement, acknowledgment, thinking, greeting, farewell).
+
+### AI Widget Layer
+
+The agent can emit `widget.spawn` calls. The Widget Layer instantiates a glassmorphism React component around the avatar with scoped props and a TTL.
+
+[Widget Layer doc →](/face/widget-layer)
+
+## Latency budget
+
+| Stage | Target |
+|---|---|
+| Mic to first ASR partial | 80 ms |
+| ASR partial to agent first token | depends on agent (typically 300–800 ms) |
+| Agent token to Compiler chunk | 80 ms |
+| Compiler chunk to TTS first byte | 100 ms |
+| TTS first byte to audio out | 80 ms |
+| **End-to-end first audio (median)** | **340 ms** |
+
+## Deployment
+
+The reference deployment runs on Railway. Per-tenant deployments run in a per-tenant namespace; client-hosted deployments ship as a single Docker compose plus the front-end bundle.
+
+## Continue
+
+- [Embed guide](/face/embed)
+- [AI Widget Layer](/face/widget-layer)
+- [Conversation Compiler](/face/conversation-compiler)

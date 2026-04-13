@@ -1,0 +1,112 @@
+---
+title: "L5 — Avatar"
+description: "Embodied human-in-the-loop surface. The Protocol's interface to the humans who approve, deny, and oversee."
+---
+
+# Avatar (Layer 5)
+
+Avatar is the human-in-the-loop surface. It's where T2+ approvals land, where ledger events are surfaced for oversight, and where humans intervene in agent runs.
+
+## Scope
+
+Avatar is responsible for:
+
+- Receiving `Approval` events from [Gate](/protocol/layers/gate)
+- Rendering them to humans through one or more transports (UI, Slack, email, SMS, custom webhook)
+- Capturing approval/denial responses and committing them to the [Evidence Ledger](/protocol/reference/evidence-ledger) via Engine
+- Surfacing in-flight runs and ledger events for ad-hoc oversight
+- Providing a uniform interaction model regardless of transport
+
+Avatar is **not** responsible for:
+
+- Deciding policy (Gate already classified the tier; Avatar surfaces the decision to a human)
+- Holding decisions silently — every Approval has an `expires_at` and a default-deny on timeout
+
+## Two Avatar surfaces SINT ships
+
+The Protocol defines the interface; SINT Labs ships two reference implementations.
+
+### 1. SINT Console
+**[Platform Console →](/platform/console/overview)**
+
+Web-based control surface for operators of the SINT Operator Platform. Approvals appear as cards in an Approval Tray. Operator-grade UI: dense, keyboard-navigable, ledger-aware.
+
+### 2. SINT Face
+**[SINT Face →](/face/overview)**
+
+Voice-first 3D avatar interface. Approvals can spawn an `ApprovalTray` widget around the Face avatar in real time. Useful when humans want a single conversational surface rather than a dashboard.
+
+## The Avatar protocol
+
+Any custom UI can implement the Avatar protocol. The interface:
+
+```typescript
+interface AvatarSurface {
+  // Inbound: Gate sends an Approval to render
+  present(approval: Approval): Promise<void>;
+
+  // Outbound: human's response is committed via this callback
+  onResponse(handler: (response: ApprovalResponse) => Promise<void>): void;
+}
+
+type ApprovalResponse =
+  | { approval_id: string; decision: "approve"; comment?: string; approver_id: string }
+  | { approval_id: string; decision: "deny";    reason: string;  approver_id: string }
+  | { approval_id: string; decision: "modify";  changes: ActionDiff; approver_id: string };
+```
+
+`modify` is supported only for actions whose policy declares them modifiable (e.g. *"approver may reduce send count but not increase it"*). Modifications go through the same attenuation check as token delegation.
+
+## Approval timing
+
+Tier-defined defaults (configurable per tenant):
+
+| Tier | Default approval window | Behavior on timeout |
+|---|---|---|
+| T2 | 4 hours | Default-deny, ledgered as `escalation_timeout` |
+| T3 | 1 hour | Default-deny, escalation alert raised |
+| T4 | 24 hours | Default-deny, escalation alert raised |
+
+Median approval-to-action time across current Operator deployments: **94 seconds**.
+
+## Multi-transport routing
+
+A single Approval can route to multiple transports. The first response wins; later responses are ledgered as `late_response` and ignored.
+
+```yaml
+# routing.yaml
+- match: { tier: 4 }
+  transports:
+    - { kind: "console", workspace: "operations" }
+    - { kind: "slack",   channel:  "#ops-approvals" }
+    - { kind: "sms",     phone:    "+1-555-..." }
+
+- match: { tier: 2, action_class: "doc.summary.write" }
+  transports:
+    - { kind: "console", workspace: "intake" }
+```
+
+## Ledger surfacing
+
+Avatar surfaces also display ledger events in real time (subject to per-user RBAC). The Console and Face both subscribe to the per-tenant ledger event stream and render entries as they arrive.
+
+For audit-only surfaces (e.g. compliance dashboards), implement only the read side of the Avatar protocol. The Protocol's [`@sint/avatar` package](https://github.com/sint-ai/sint-protocol/tree/main/packages/avatar) provides building blocks.
+
+## Identity and attribution
+
+Approvers are identified by `approver_id`, which must be issued by the tenant's identity provider (we recommend SSO/OIDC). The `approver_id` is recorded in the ledger entry alongside the response.
+
+Anonymous approvals are not supported. The Protocol fails closed on `approver_id: null`.
+
+## What Avatar does not do
+
+- **Re-evaluate policy.** The Gate already decided the action is `escalate`. Avatar's only job is to surface to a human; policy is not relitigated in the surface layer.
+- **Hold approvals silently.** Every Approval has an `expires_at`; on timeout, a denial is ledgered automatically.
+- **Bypass the ledger.** Every approval, denial, or modification commits a ledger entry before the original action proceeds.
+
+## Continue
+
+- [Console](/platform/console/overview) — the SINT Labs reference Avatar surface for operators
+- [Face](/face/overview) — the voice-first reference Avatar surface
+- [Approval tiers reference](/protocol/reference/approval-tiers)
+- [Evidence Ledger reference](/protocol/reference/evidence-ledger)

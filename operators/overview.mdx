@@ -1,0 +1,81 @@
+---
+title: "Operators overview"
+description: "Custom autonomous workflow systems built and run on the Protocol."
+---
+
+# Operators
+
+An Operator is a complete autonomous workflow system. Not a chatbot. Not a copilot. A system that ingests the inputs you already have, executes the steps your team would execute, and writes to the systems of record you already use — under the [Protocol](/protocol/overview)'s safety envelope.
+
+## What "Operator" means here
+
+| It is | It is not |
+|---|---|
+| A complete workflow, end-to-end | A chatbot bolted to a single tool |
+| Backed by a measurable outcome (hours reclaimed, throughput, SLA) | Sold by seat or message |
+| Run under the Protocol — every action ledgered, every T2+ approval-gated | Run under "trust the LLM" |
+| Built for one workflow at a time | Generic agent framework |
+| Owned by SINT Labs (Agency) or by you (Platform) | Loosely-coupled scripts |
+
+## Six flagship Operators
+
+| Operator | One-line | Page |
+|---|---|---|
+| Revenue | Outbound, follow-up, pipeline hygiene, quote-to-cash | [/operators/revenue](/operators/revenue) |
+| Document Intelligence | Intake, classification, extraction, routing | [/operators/documents](/operators/documents) |
+| Voice | Inbound/outbound voice for intake, scheduling, triage | [/operators/voice](/operators/voice) |
+| Onboarding | Client/employee onboarding to Day 1 | [/operators/onboarding](/operators/onboarding) |
+| CMO | Content production + distribution against a positioning brief | [/operators/cmo](/operators/cmo) |
+| Inbox | Triage, draft, route, close loops on shared inboxes | [/operators/inbox](/operators/inbox) |
+
+## How an Operator is built
+
+1. **Intake** — webhooks, polling, voice, or scheduled triggers. Ingestion is policy-aware: the [Bridge](/protocol/layers/bridge) translates inbound work into `Action` objects.
+2. **Plan** — the agent proposes an action sequence. Plans are graphs, not chains; branches and parallel paths are first-class.
+3. **Gate** — every action passes through the [Policy Gateway](/protocol/layers/gate). Decisions: allow / deny / escalate, classified by [tier](/protocol/reference/approval-tiers).
+4. **Execute** — the [Engine](/protocol/layers/engine) dispatches against the appropriate Bridge adapter.
+5. **Ledger** — every decision and outcome lands in the [Evidence Ledger](/protocol/reference/evidence-ledger) before any side effect fires.
+6. **Surface** — outcomes report back through [Console](/platform/console/overview), [Face](/face/overview), Slack, email, or your system of record.
+
+[Read the full anatomy →](/operators/anatomy)
+
+## How an Operator is delivered
+
+Two paths:
+
+- **Agency** (today) — SINT Labs builds, deploys, and runs the Operator for you. Two-week fixed-fee Audit, then Build, then Operate. See [sint.gg/agency](https://sint.gg/agency).
+- **Platform** (Q3 beta) — self-serve runtime for organizations that want to build and run their own Operators. See [Platform overview](/platform/overview).
+
+Both run on the same stack. Agency Operators are simply Platform Operators that we operate.
+
+## What an Operator costs
+
+Agency engagement model:
+
+| Phase | Duration | Pricing |
+|---|---|---|
+| Audit | 2 weeks | $12k–$25k fixed |
+| Build | 4–8 weeks | $40k–$180k milestone-based |
+| Operate | Ongoing | $4k–$20k/mo retainer + 5–15% outcome share |
+
+Pricing varies per Operator. Concrete bands per workflow on each Operator page.
+
+## What we measure
+
+Operators are sold against measurable outcomes, not features. Per-Operator metrics:
+
+- **Revenue Operator** — replies/1k touches, meetings booked, cost per meeting, pipeline hygiene score
+- **Document Intelligence** — intake-to-summary time, classification accuracy, hours reclaimed
+- **Voice** — call completion, average handle time, schedule accuracy, handoff precision
+- **Onboarding** — time-from-signed-to-provisioned, first-week oversight hours, downstream tickets
+- **CMO** — publishing cadence, qualified inbound, brand-consistency rubric
+- **Inbox** — inbox zero cadence, time-to-first-response, loops closed/week
+
+Every metric is computed from the [Evidence Ledger](/protocol/reference/evidence-ledger), so it's auditable.
+
+## Continue
+
+- [Anatomy of an Operator](/operators/anatomy) — the full pipeline
+- [Safety envelope](/operators/safety-envelope) — how Protocol wraps every Operator
+- [Telemetry](/operators/telemetry) — what gets logged and where
+- A flagship Operator — pick one above

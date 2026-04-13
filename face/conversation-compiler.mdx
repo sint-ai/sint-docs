@@ -1,0 +1,72 @@
+---
+title: "Conversation Compiler"
+description: "The fast-LLM rewrite that turns agent output into speakable text."
+---
+
+# Conversation Compiler
+
+Agent output is text. Speakable text is a different thing. The Compiler bridges the gap.
+
+## What it does
+
+Takes structured agent output (which may include markdown, code blocks, tool call IDs, JSON, parenthetical asides) and rewrites it as natural spoken language, preserving meaning, suppressing what shouldn't be spoken aloud, and adding prosody hints.
+
+## Why it exists
+
+Three reasons:
+
+1. **TTS doesn't read markdown well.** "**bold** and *italic*" comes out wrong; URLs come out as character-by-character spellouts; bullet lists become unbroken streams.
+2. **Latency.** TTS streaming benefits from clean, well-formed sentences. The Compiler emits chunks at sentence boundaries with prosody markers.
+3. **Privacy and noise.** Tool call IDs, internal references, and meta-commentary should not be spoken. The Compiler strips them.
+
+## Pipeline
+
+```
+Agent output (raw, structured)
+   │
+   ▼
+Parse: split into spoken vs widget vs internal
+   │
+   ▼
+Rewrite spoken parts via fast LLM (target: <100ms per chunk)
+   │
+   ▼
+Emit chunks at sentence boundaries with SSML prosody markers
+   │
+   ▼
+TTS streaming
+```
+
+## Model
+
+Default: a fast small model (Claude Haiku, GPT-5 Nano, or equivalent). Configurable per-deployment.
+
+The Compiler is one of the few places in the SINT stack where we recommend a small fast model over a frontier one — the rewrite quality difference is small relative to the latency cost.
+
+## Prompt
+
+The Compiler prompt is in [`@commons/skills/conversation-compiler`](/platform/commons/skills). Key directives:
+
+- Preserve meaning and intent
+- Strip markdown formatting and code blocks (replace with spoken descriptions)
+- Strip tool call IDs and internal references
+- Convert URLs to "the link in the widget" rather than spelling out
+- Add prosody markers at sentence boundaries
+- Maintain the agent's tone (formal/casual)
+
+## Backpressure
+
+If the agent emits faster than TTS can speak, the Compiler queues chunks. If TTS catches up to the Compiler, the Compiler emits as soon as the next sentence boundary is reached.
+
+If the user interrupts (barge-in), the Compiler clears its queue, the active TTS stream is canceled, and a `interrupted` signal is sent back to the agent endpoint.
+
+## What the Compiler does not do
+
+- **Rewrite for safety.** The Compiler is a presentation layer. Safety is enforced upstream by the [Gate](/protocol/layers/gate).
+- **Inject content.** The Compiler can suppress; it cannot add facts.
+- **Translate.** Localization is a separate concern; the Compiler operates within a single language at a time.
+
+## Continue
+
+- [Architecture](/face/architecture)
+- [Widget Layer](/face/widget-layer)

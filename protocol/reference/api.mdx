@@ -1,0 +1,156 @@
+---
+title: "HTTP API"
+description: "Reference for the Policy Gateway HTTP surface."
+---
+
+# HTTP API
+
+The Policy Gateway (`@sint/gateway-server`) exposes an HTTP API for token issuance, decision making, ledger inspection, and approval handling. Default base URL: `http://localhost:3100/v1` in development.
+
+A live OpenAPI explorer is available at `/v1/docs` on any running Gateway.
+
+## Authentication
+
+All endpoints (except `/health` and `/ready`) require a bearer token in the `Authorization` header.
+
+```
+Authorization: Bearer <CapabilityToken JWT>
+```
+
+Token verification is per [I-T1](/protocol/invariants/i-t1-attenuation): signature, expiry, revocation status, and scope are checked on every request.
+
+## Endpoints
+
+### Health
+
+```
+GET /v1/health      → 200 {"status":"ok"}
+GET /v1/ready       → 200 {"ready":true} | 503 {"ready":false,"reasons":[...]}
+```
+
+### Decisions
+
+```
+POST /v1/decide
+Body: { action_class: string, tenant: string, params: object }
+Returns: Decision (see /protocol/layers/gate)
+```
+
+The single hot path. Submit an action; receive `allow` / `deny` / `escalate`. The Decision is pre-written to the ledger before the response returns per [I-G3](/protocol/invariants/i-g3-ledger).
+
+### Tokens
+
+```
+POST /v1/tokens/delegate
+Body: AttenuationRequest
+Returns: { token: string, expires_at: number }
+
+POST /v1/tokens/revoke
+Body: { jti: string, cascade?: boolean }
+Returns: RevokeReport
+
+GET /v1/tokens/:jti/status
+Returns: { active: boolean, revoked: boolean, expires_at: number }
+```
+
+### Ledger
+
+```
+GET /v1/ledger?tenant=...&limit=100&since=...&until=...&kind=...&trace_id=...
+Returns: { entries: LedgerEntry[], cursor?: string }
+
+GET /v1/ledger/:id
+Returns: LedgerEntry
+
+POST /v1/ledger/verify
+Body: { tenant: string, range?: { from?: string, to?: string } }
+Returns: VerifyReport
+```
+
+### Approvals
+
+```
+GET /v1/approvals?tenant=...&status=pending|resolved
+Returns: { approvals: Approval[] }
+
+POST /v1/approvals/:id/respond
+Body: ApprovalResponse
+Returns: { ledger_id: string }
+```
+
+### Policy
+
+```
+GET /v1/policy/bundle?tenant=...
+Returns: PolicyBundle (current active)
+
+POST /v1/policy/reload
+Body: { tenant: string, bundle_path: string }
+Returns: { loaded: boolean, validated_at: string }
+```
+
+### E-stop
+
+```
+POST /v1/estop/fire
+Body: { tenant: string, scope?: WorkspaceScope | AgentScope }
+Returns: { fired_at: string, ledger_id: string }
+
+POST /v1/estop/clear
+Body: { tenant: string, approver_id: string, confirmation_token: string }
+Returns: { cleared_at: string, ledger_id: string }
+```
+
+E-stop fires require a token with `tier_max: 4`. E-stop clears require a `confirmation_token` issued via Console after a human-reviewed integrity report.
+
+### Dev helpers (development server only)
+
+```
+POST /v1/dev/issue-token       (only available when NODE_ENV !== production)
+Body: { agent_id, tenant, scopes, tier_max, ttl_seconds, ... }
+Returns: { token: string }
+```
+
+## Errors
+
+All non-2xx responses include a structured error:
+
+```json
+{
+  "error": "attenuation_violation",
+  "detail": "child scopes must be subset of parent",
+  "trace_id": "abc-123"
+}
+```
+
+Error codes are stable identifiers; new codes are added via minor releases, never silently. See [`@sint/gateway-server/errors.ts`](https://github.com/sint-ai/sint-protocol/blob/main/packages/gateway-server/src/errors.ts) for the canonical list.
+
+## Idempotency
+
+`POST /v1/decide` accepts an `Idempotency-Key` header. Repeat requests with the same key within a 24h window return the original Decision without re-evaluating; subsequent identical actions still produce a single ledger entry.
+
+## Rate limits
+
+The Gateway emits `Retry-After` on 429 responses. Rate limits are per-tenant per-token. Per [I-F1](/protocol/invariants/i-f1-fail-modes), rate limit infrastructure is non-safety; if Redis is unreachable, the limiter fails open and other Gate checks still apply.
+
+## Webhooks
+
+The Gateway can emit webhooks on key events:
+
+- `decision.allowed`
+- `decision.denied`
+- `decision.escalated`
+- `approval.resolved`
+- `estop.fired`
+- `ledger.divergence_detected`
+
+Webhook signatures use HMAC-SHA256; secret is per-destination.
+
+## SDKs
+
+- **TypeScript:** `@sint/sdk` (npm)
+- **Python:** `sint` (pypi) — wraps the HTTP surface, types from the OpenAPI spec
+- **Rust:** `sint` (crates.io) — same coverage
+- **Go:** `github.com/sint-ai/sint-go` — same coverage
+
+All SDKs are auto-generated from the OpenAPI spec and re-released with each Gateway version.

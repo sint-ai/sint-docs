@@ -1,0 +1,182 @@
+---
+title: "Capability tokens"
+description: "Per-agent, per-session, real-time revocable. Encode physical and financial constraints in the token, not in external config."
+---
+
+# Capability tokens
+
+The unit of authority in the Protocol. A capability token says: *this agent, in this tenant, may do these things, up to this risk tier, within these physical and financial bounds, until this expiry.*
+
+Tokens are minted by [Bridge](/protocol/layers/bridge), inspected by [Gate](/protocol/layers/gate) on every request, and revoked through the revocation index with <50ms p99 propagation across regions.
+
+## Structure
+
+```typescript
+type CapabilityToken = {
+  // Identity
+  jti: string;                 // unique token ID
+  agent_id: string;
+  tenant: string;
+  parent_jti: string | null;   // null for root tokens
+
+  // Authority
+  scopes: string[];            // action_class patterns
+  tier_max: 0 | 1 | 2 | 3 | 4;
+
+  // Physical constraints (if applicable)
+  physical: PhysicalConstraints | null;
+  geofence_polygon: GeoJSON | null;
+
+  // Financial constraints (if applicable)
+  spend_cap_usd: number | null;
+
+  // Rate limits (advisory; not safety-critical per I-F1)
+  rate: { per_minute: number; per_hour: number } | null;
+
+  // Lifetime
+  iat: number;                 // issued-at, unix seconds
+  exp: number;                 // expiry, unix seconds
+};
+```
+
+## Scopes
+
+Scopes are action_class patterns. The Gate matches an action against the token's scopes using a strict longest-prefix match.
+
+```
+Examples:
+  "robot.move"             matches: robot.move only
+  "robot.*"                matches: robot.move, robot.stop, robot.report, etc.
+  "doc.summary.write"      matches: doc.summary.write only
+  "*"                      matches: anything (rarely granted; reserved for break-glass)
+```
+
+Wildcards are matched at segment boundaries. `robot.*` does not match `robotx.foo`.
+
+## Tiers
+
+`tier_max` declares the maximum [approval tier](/protocol/reference/approval-tiers) the token authorizes. A token with `tier_max: 1` can never authorize a T2+ action; the Gate denies regardless of scope.
+
+| Tier | Authority |
+|---|---|
+| 0 | Reads only |
+| 1 | Scheduled writes within scope |
+| 2 | Ad-hoc writes (requires approval) |
+| 3 | Multi-entity actions (requires approval + double-confirmation) |
+| 4 | Irreversible / regulated (always requires explicit human) |
+
+## Physical constraints
+
+For tokens governing actuator actions:
+
+```typescript
+type PhysicalConstraints = {
+  max_velocity_mps?: number;       // meters/second
+  max_force_n?: number;            // newtons
+  max_payload_kg?: number;
+  workspace_id?: string;           // logical workspace identifier
+};
+```
+
+The Gate enforces these constraints by inspecting the action's claimed parameters. A `robot.move` action claiming `velocity: 2.5` against a token with `max_velocity_mps: 1.5` is denied.
+
+This closes the SROS2 failure mode where physical constraints lived in external configs that drifted from the deployed token state.
+
+## Geofencing
+
+`geofence_polygon` is a GeoJSON polygon. Actions whose target coordinates fall outside the polygon are denied, regardless of scope.
+
+For multi-floor or 3D scenarios, geofences support altitude bounds via a custom property on the GeoJSON feature:
+
+```json
+{
+  "type": "Polygon",
+  "coordinates": [[...]],
+  "properties": { "z_min_m": 0, "z_max_m": 3.0 }
+}
+```
+
+## Spend caps
+
+For tokens governing financial actions:
+
+```typescript
+spend_cap_usd: 50.00
+```
+
+The Gate reads the token's rolling spend total (maintained by [Economy](/protocol/layers/economy)) and denies actions that would push the total past the cap. If Economy is unavailable past the configured staleness threshold, Gate fails closed on spend-cap-bound actions per [I-F1](/protocol/invariants/i-f1-fail-modes).
+
+## Issuance
+
+```typescript
+import { issueToken } from "@sint/bridge";
+
+const result = await issueToken({
+  agent_id: "fleet-agent-007",
+  tenant: "acme-logistics",
+  requested_scopes: ["robot.move", "robot.report"],
+  tier_max: 1,
+  ttl_seconds: 3600,
+  physical: {
+    max_velocity_mps: 1.5,
+    geofence: warehouseFloorPolygon,
+  },
+});
+```
+
+Root tokens are issued by Bridge after agent authentication. The agent's identity provider determines the maximum permission set; the token's permissions are the intersection of (a) the requested set, (b) the agent's max, and (c) any tenant-level policies.
+
+## Delegation (attenuation)
+
+A holder of a token can mint a child token with **strictly narrower** authority. This is the one operation tokens support beyond verification — it's how an agent partitions its own authority across sub-tasks or sub-agents.
+
+```typescript
+import { attenuate } from "@sint/tokens";
+
+const child = attenuate(parent, {
+  scopes: ["robot.move"],         // subset of parent.scopes
+  tier_max: 0,                    // ≤ parent.tier_max
+  ttl_seconds: 60,                // child.exp ≤ parent.exp
+  physical: {
+    max_velocity_mps: 0.5,        // ≤ parent.physical.max_velocity_mps
+  },
+});
+```
+
+Per [I-T1](/protocol/invariants/i-t1-attenuation), `attenuate()` rejects any request that would widen authority. There is no escape hatch.
+
+## Revocation
+
+```typescript
+import { revoke } from "@sint/tokens";
+
+await revoke(token.jti, { cascade: true });
+```
+
+Revocation propagates via Redis pub/sub with a Postgres consistency fallback. Measured p99 propagation is <50ms across three regions on production workloads. `cascade: true` revokes all descendants (children, grandchildren, etc.) discovered through the `parent_jti` chain.
+
+After revocation, any inflight Gate request consulting the affected token returns `deny` with `reason: "token_revoked"`. The revocation itself is ledgered.
+
+## Verification
+
+Tokens are signed JWTs (default Ed25519). Public keys for the Bridge signer are published at `https://gate.sint.gg/.well-known/jwks.json` (or your tenant's equivalent).
+
+```typescript
+import { inspectToken } from "@sint/bridge";
+
+const result = inspectToken(rawJwt);
+// Result.Ok if signature, expiry, revocation, and structural checks pass
+// Result.Err otherwise; err.kind ∈ { signature_invalid, expired, revoked, structural_invalid }
+```
+
+## What tokens are not
+
+- **Bearer credentials.** Tokens are scoped, attenuated, time-bound, and revocable. A leaked token has bounded authority and can be revoked instantly. They are designed to fail safely; they are not designed to be secrets in the traditional sense.
+- **Cross-tenant.** A token's authority is scoped to one tenant. Cross-tenant actions require separate tokens per tenant.
+- **Re-issuable.** Tokens are not reissued after expiry. The agent authenticates again and Bridge issues a new root token.
+
+## Continue
+
+- [Bridge (L1)](/protocol/layers/bridge)
+- [Approval tiers reference](/protocol/reference/approval-tiers)
+- [I-T1 attenuation](/protocol/invariants/i-t1-attenuation)

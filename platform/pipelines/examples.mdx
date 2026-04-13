@@ -1,0 +1,196 @@
+---
+title: "Pipeline examples"
+description: "Real-shape Pipeline YAML for the flagship Operators."
+---
+
+# Examples
+
+Real-shape Pipeline definitions for selected flagship Operators. Trimmed for readability; production Pipelines include more stages, error handling, and per-tenant config.
+
+## Document Intelligence (excerpt)
+
+```yaml
+name: document-intelligence
+version: 1.4.2
+operator: DocumentIntelligence
+
+imports:
+  - component: "@commons/ocr-stage@^1.3.0"
+  - component: "@commons/pii-redactor@^2.0.0"
+  - skill:     "@commons/classify-document@^2.1.0"
+  - skill:     "@commons/extract-contract-fields@^1.4.0"
+  - policy:    "@commons/policy-defaults-services@^4.0.0"
+  - policy:    "@commons/policy-jurisdictional-flags@^2.0.0"
+
+triggers:
+  - kind: webhook
+    path: "/webhooks/dropbox-doc"
+    auth: { kind: hmac, secret_ref: "secrets/dropbox" }
+
+action_classes:
+  - "doc.classify"
+  - "doc.extract"
+  - "doc.summary.write"
+  - "route.attorney-queue"
+  - "notify.attorney"
+
+capabilities:
+  - "doc.read"
+  - "doc.write"
+  - "queue.write"
+  - "notify.write"
+
+outputs:
+  - { kind: doc-store, vendor: dropbox, namespace: "acme.intake" }
+  - { kind: queue,     vendor: console, namespace: "attorney-queue" }
+  - { kind: email,     sender:  "intake@acme-firm.com" }
+
+stages:
+  - id: ocr
+    component: "@commons/ocr-stage@^1.3.0"
+    inputs: { source: ${trigger.payload.file_url} }
+
+  - id: redact
+    component: "@commons/pii-redactor@^2.0.0"
+    inputs: { text: ${ocr.text}, locale: en-US }
+
+  - id: classify
+    skill: "@commons/classify-document@^2.1.0"
+    inputs:
+      text: ${redact.redacted_text}
+      schema: "acme-doc-types-v3"
+      confidence_floor: 0.82
+
+  - id: extract
+    when: "${classify.confidence} >= 0.82"
+    skill: "@commons/extract-contract-fields@^1.4.0"
+    inputs: { text: ${redact.redacted_text} }
+
+  - id: jurisdictional-check
+    when: "${extract.fields.jurisdiction} != null"
+    action:
+      class: "doc.flag"
+      params: { jurisdiction: ${extract.fields.jurisdiction} }
+    tier: 2
+    approval:
+      route: { kind: console, workspace: legal }
+
+  - id: summary
+    skill: "@commons/draft-summary@^1.2.0"
+    inputs:
+      classification: ${classify}
+      fields: ${extract.fields}
+
+  - id: route
+    action:
+      class: "route.attorney-queue"
+      params:
+        queue: ${classify.routing_target}
+        summary: ${summary.text}
+    tier: 1
+
+  - id: notify
+    action:
+      class: "notify.attorney"
+      params: { queue_id: ${route.queue_id} }
+    tier: 1
+```
+
+## CMO (excerpt)
+
+```yaml
+name: cmo
+version: 0.9.0
+operator: CMO
+
+imports:
+  - skill:    "@commons/draft-social-post@^1.2.0"
+  - skill:    "@commons/draft-longform@^2.0.0"
+  - skill:    "@commons/rate-content-against-brief@^1.0.0"
+  - template: "@commons/weekly-content-plan@^1.0.0"
+
+triggers:
+  - kind: schedule
+    cron: "0 6 * * MON"
+    timezone: America/Los_Angeles
+
+action_classes:
+  - "publish.linkedin"
+  - "publish.x.thread"
+  - "publish.blog"
+  - "publish.newsletter"
+  - "metrics.ingest"
+
+capabilities:
+  - "canon.marketing.read"
+  - "publish.linkedin"
+  - "publish.x"
+  - "publish.blog"
+  - "publish.newsletter"
+  - "metrics.read"
+
+outputs:
+  - { kind: social, vendor: linkedin, account: "founder.illia" }
+  - { kind: social, vendor: x,        account: "company" }
+  - { kind: blog,   vendor: hashnode, namespace: "sint-labs" }
+
+stages:
+  - id: brief
+    component: "@commons/canon-fetch@^1.0.0"
+    inputs:
+      paths: ["marketing/positioning-brief.md", "marketing/voice-and-tone.md"]
+      snapshot_to_memory: true
+
+  - id: plan
+    skill: "@commons/draft-week-plan@^1.0.0"
+    inputs: { brief: ${brief.snapshot} }
+
+  - id: drafts
+    parallel:
+      - id: longform
+        skill: "@commons/draft-longform@^2.0.0"
+        inputs: { topic: ${plan.longform_topic}, brief: ${brief.snapshot} }
+      - id: social
+        skill: "@commons/draft-social-post@^1.2.0"
+        inputs: { topics: ${plan.social_topics}, brief: ${brief.snapshot} }
+
+  - id: rate
+    skill: "@commons/rate-content-against-brief@^1.0.0"
+    inputs:
+      content: ${drafts.longform.text}
+      brief: ${brief.snapshot}
+
+  - id: review
+    when: "${drafts.social.includes_founder_quote} == true"
+    action:
+      class: "publish.linkedin"
+      params:
+        account: founder.illia
+        text: ${drafts.social.founder_post}
+    tier: 2
+    approval:
+      route: { kind: slack, channel: "#ops-approvals" }
+      timeout: 6h
+
+  - id: publish-x
+    action:
+      class: "publish.x.thread"
+      params:
+        account: company
+        thread: ${drafts.social.x_thread}
+    tier: 1
+
+  - id: publish-blog
+    action:
+      class: "publish.blog"
+      params:
+        title: ${drafts.longform.title}
+        body: ${drafts.longform.text}
+    tier: 1
+```
+
+## Continue
+
+- [Pipelines overview](/platform/pipelines/overview)
+- [YAML spec](/platform/pipelines/yaml-spec)
+- [Operators](/operators/overview)

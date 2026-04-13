@@ -1,0 +1,222 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "SINT Labs",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg",
+    "href": "https://sint.gg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#00E5FF",
+    "light": "#00E5FF",
+    "dark": "#0A0B0D",
+    "background": {
+      "dark": "#0A0B0D",
+      "light": "#F4F2ED"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "sint.gg",
+      "url": "https://sint.gg"
+    },
+    {
+      "name": "Founder",
+      "url": "https://sint.gg/founder"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "GitHub",
+    "url": "https://github.com/sint-ai"
+  },
+  "topAnchor": {
+    "name": "Documentation",
+    "icon": "book"
+  },
+  "anchors": [
+    {
+      "name": "Protocol",
+      "icon": "shield",
+      "url": "protocol"
+    },
+    {
+      "name": "Operators",
+      "icon": "robot",
+      "url": "operators"
+    },
+    {
+      "name": "Platform",
+      "icon": "server",
+      "url": "platform"
+    },
+    {
+      "name": "Face",
+      "icon": "user",
+      "url": "face"
+    },
+    {
+      "name": "Research",
+      "icon": "flask",
+      "url": "research"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Start here",
+      "pages": [
+        "introduction",
+        "origin",
+        "ecosystem-map",
+        "quickstart",
+        "support"
+      ]
+    },
+    {
+      "group": "SINT Protocol",
+      "pages": [
+        "protocol/overview",
+        "protocol/architecture",
+        "protocol/quickstart",
+        {
+          "group": "The five layers",
+          "pages": [
+            "protocol/layers/bridge",
+            "protocol/layers/gate",
+            "protocol/layers/engine",
+            "protocol/layers/economy",
+            "protocol/layers/avatar"
+          ]
+        },
+        {
+          "group": "Invariants",
+          "pages": [
+            "protocol/invariants/overview",
+            "protocol/invariants/i-t1-attenuation",
+            "protocol/invariants/i-g2-estop",
+            "protocol/invariants/i-g3-ledger",
+            "protocol/invariants/i-f1-fail-modes",
+            "protocol/invariants/i-p1-persistence"
+          ]
+        },
+        {
+          "group": "Reference",
+          "pages": [
+            "protocol/reference/capability-tokens",
+            "protocol/reference/evidence-ledger",
+            "protocol/reference/approval-tiers",
+            "protocol/reference/policy-language",
+            "protocol/reference/api"
+          ]
+        },
+        "protocol/security",
+        "protocol/contributing"
+      ]
+    },
+    {
+      "group": "SINT Operators",
+      "pages": [
+        "operators/overview",
+        "operators/anatomy",
+        "operators/safety-envelope",
+        "operators/telemetry",
+        {
+          "group": "Flagship Operators",
+          "pages": [
+            "operators/revenue",
+            "operators/documents",
+            "operators/voice",
+            "operators/onboarding",
+            "operators/cmo",
+            "operators/inbox"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "SINT Operator Platform",
+      "pages": [
+        "platform/overview",
+        "platform/console/overview",
+        "platform/console/dashboards",
+        "platform/console/approvals",
+        "platform/commons/overview",
+        "platform/commons/components",
+        "platform/commons/skills",
+        "platform/memory/overview",
+        "platform/memory/canon-integration",
+        "platform/cron/overview",
+        "platform/canon/overview",
+        "platform/canon/format",
+        "platform/canon/indexing",
+        "platform/pipelines/overview",
+        "platform/pipelines/yaml-spec",
+        "platform/pipelines/compilation",
+        "platform/pipelines/examples"
+      ]
+    },
+    {
+      "group": "SINT Face",
+      "pages": [
+        "face/overview",
+        "face/architecture",
+        "face/embed",
+        "face/widget-layer",
+        "face/conversation-compiler"
+      ]
+    },
+    {
+      "group": "Research",
+      "pages": [
+        "research/rosclaw",
+        "research/mcp-security"
+      ]
+    },
+    {
+      "group": "Resources",
+      "pages": [
+        "changelog",
+        "trust",
+        "press"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/sint-ai",
+    "x": "https://x.com/sintlabs",
+    "linkedin": "https://linkedin.com/company/thesint"
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true,
+    "raiseIssue": true
+  },
+  "search": {
+    "prompt": "Search SINT docs..."
+  },
+  "metadata": {
+    "og:image": "https://docs.sint.gg/og/default.png",
+    "og:site_name": "SINT Labs Documentation",
+    "twitter:site": "@sintlabs"
+  },
+  "redirects": [
+    { "source": "/introduction", "destination": "/origin", "permanent": true },
+    { "source": "/whitepaper", "destination": "/origin", "permanent": true },
+    { "source": "/whitepaper/:slug*", "destination": "/origin", "permanent": true },
+    { "source": "/security", "destination": "/protocol/security", "permanent": true },
+    { "source": "/mcp-marketplace", "destination": "/origin", "permanent": true },
+    { "source": "/sintbridge", "destination": "/protocol/layers/bridge", "permanent": true },
+    { "source": "/sintasibridge", "destination": "/origin", "permanent": true },
+    { "source": "/presskit", "destination": "/press", "permanent": true },
+    { "source": "/tokenomics", "destination": "/origin", "permanent": true },
+    { "source": "/tokenomics/:slug*", "destination": "/origin", "permanent": true },
+    { "source": "/marketplace", "destination": "/origin", "permanent": true },
+    { "source": "/marketplace/:slug*", "destination": "/origin", "permanent": true },
+    { "source": "/airdrop", "destination": "/origin", "permanent": true },
+    { "source": "/token", "destination": "/origin", "permanent": true },
+    { "source": "/asi", "destination": "/origin", "permanent": true },
+    { "source": "/agents/trading", "destination": "/origin", "permanent": true },
+    { "source": "/agents/defi", "destination": "/origin", "permanent": true },
+    { "source": "/agents/social", "destination": "/origin", "permanent": true }
+  ]
+}

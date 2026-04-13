@@ -1,0 +1,72 @@
+---
+title: "Security"
+description: "Threat model, disclosure policy, and what we promise."
+---
+
+# Security
+
+This page describes the Protocol's threat model and how to disclose vulnerabilities.
+
+## Disclosure
+
+Report security issues to **security@sint.gg**.
+
+We commit to:
+
+- **72-hour acknowledgment** of receipt
+- **Coordinated disclosure** — we'll work with you on a release timeline
+- **Public credit** on the changelog and on this page (with your permission)
+
+Do not file public GitHub issues for security vulnerabilities.
+
+PGP key for security@sint.gg available on request.
+
+## Threat model
+
+The Protocol is designed against the following adversaries:
+
+| Adversary | Capability | Mitigation |
+|---|---|---|
+| **Compromised agent** | Can issue any request the agent's identity allows | Capability tokens with attenuation (I-T1); Gate denies out-of-scope; ledger records all attempts |
+| **Prompt injection** | Can manipulate the agent into proposing actions outside intent | Same as above — the agent is untrusted regardless of why it proposed an action |
+| **Compromised LLM provider** | Returns adversarial action proposals | Same as above; ROSClaw demonstrates frontier backends are not interchangeable |
+| **Compromised infra (rate limiter, telemetry)** | Can fail or return wrong values | Non-safety per I-F1; safety path remains intact |
+| **Compromised storage** | Can attempt UPDATE/DELETE on ledger | INSERT-only triggers reject; tamper attempts are themselves ledgered |
+| **Insider with DB access** | Can attempt direct manipulation | INSERT-only triggers + hash chain verification surface tampering within 10 minutes |
+| **Network attacker** | Can intercept Gateway traffic | TLS required; webhook HMAC; signed tokens |
+| **Stolen token** | Can issue requests as the owning agent | Real-time revocation (<50ms p99); narrow scope per token; short TTLs by default |
+
+## What the Protocol does not protect against
+
+Honesty matters more than coverage:
+
+- **Faulty actuators.** If a robot's motor controller ignores a stop command, the Protocol can't intervene. Hardware E-stop must be the highest-authority signal.
+- **Misconfigured policies.** If the policy bundle authorizes too much, the Gate enforces what's authorized. Policy review is an operator responsibility.
+- **Side-channel leakage.** The Protocol records action decisions, not all information flow. PII observed by an agent during reasoning is governed by the agent runtime's data handling, not the ledger.
+- **Cryptographic primitive failures.** SHA-256 and Ed25519 are the current primitives. If those break, we move to successors. There is no algorithmic agility within a major version; migration is a major version event.
+
+## Hardening recommendations
+
+For production deployments:
+
+1. **Run the Gateway behind TLS** (Cloudflare, Caddy, or your own ingress).
+2. **Rotate signing keys** at a regular cadence; the Protocol supports key rotation via JWKS.
+3. **Use short-TTL tokens.** Default 1 hour; shorter for sensitive scopes.
+4. **Enable continuous ledger verification** (`ledger:verify-continuous`).
+5. **Export ledgers to client-controlled storage** for independent verification.
+6. **Run M8 Guardrails** in pre-production to catch policy and pipeline issues before deploy.
+7. **Subscribe to security@sint.gg announcements** for advisories.
+
+## Past disclosures
+
+See the [`CHANGELOG.md`](https://github.com/sint-ai/sint-protocol/blob/main/CHANGELOG.md) under each release for security-relevant changes.
+
+## Hall of fame
+
+Researchers who have responsibly disclosed issues to us:
+
+- *(none yet — be the first)*
+
+## Bug bounty
+
+We do not currently run a bug bounty. We do credit researchers and offer to amplify their work where appropriate.

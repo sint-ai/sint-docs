@@ -1,0 +1,79 @@
+---
+title: "Onboarding Operator"
+description: "Client or employee onboarding from signed agreement to first productive day — executed end-to-end under audit."
+---
+
+# Onboarding Operator
+
+**One-liner:** Turns a signed contract or offer into a fully provisioned, kicked-off, and oriented engagement — in hours, not weeks.
+
+## What it replaces
+
+- Ops coordinator time on provisioning, channel setup, document generation
+- The "who sent the welcome packet?" Slack thread
+- Copy-paste onboarding checklists that drift out of date
+
+## System
+
+```
+Signed trigger (DocuSign / HelloSign / HRIS webhook)
+   ▼
+Parse contract/offer
+   ▼
+Provision (Slack, Asana/Linear, Google Workspace, CRM)
+   ▼
+Generate docs from Canon templates
+   ▼
+Schedule kickoff / Day 1
+   ▼
+Notify stakeholders
+   ▼
+Ledger
+   ▼
+Report
+```
+
+## Safety envelope
+
+| Tier | Action classes |
+|---|---|
+| T0 | `trigger.read`, `parse.contract` |
+| T1 | `provision.slack-channel`, `provision.workspace`, `provision.asana-project`, `generate.welcome-packet`, `schedule.kickoff` |
+| T2 | `provision.crm-record`, off-template benefits |
+| T3 | Any system granting financial or admin access |
+| T4 | Any role with production-system access (always human-approved) |
+
+Hard limits:
+
+- Role-based access control templates enforced at Gate
+- No autonomous provisioning of admin-tier access
+- Every grant ledgered with the source document's hash
+- Provisioning rolled back automatically if any T3+ approval is denied
+
+## Representative run (ledger)
+
+```
+0x1100…  2026-03-11T09:00:00Z  T0  trigger.docusign-signed       allowed
+0x1210…  2026-03-11T09:00:04Z  T1  parse.contract                allowed
+0x1301…  2026-03-11T09:00:11Z  T1  provision.slack-channel       allowed
+0x1410…  2026-03-11T09:00:14Z  T1  provision.asana-project       allowed
+0x1520…  2026-03-11T09:00:19Z  T2  provision.crm-record          escalated-approved (2.4s)
+0x1630…  2026-03-11T09:00:24Z  T1  generate.welcome-packet       allowed
+0x1740…  2026-03-11T09:00:31Z  T1  schedule.kickoff              allowed
+```
+
+## Metrics
+
+- Time-from-signed-to-fully-provisioned
+- First-week human oversight hours
+- Downstream ticket count (things that broke in week one)
+- Client/new-hire NPS at 30 days
+
+## Pricing band
+
+$6k–$16k/mo retainer + $180–$420 per onboarding above volume floor.
+
+## Continue
+
+- [CMO Operator](/operators/cmo)
+- [Canon](/platform/canon/overview) — where templates live

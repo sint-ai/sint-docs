@@ -1,0 +1,39 @@
+name: PR check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Install Mintlify
+        run: npm i -g mintlify
+      - name: Broken link check
+        run: mintlify broken-links
+      - name: MDX frontmatter check
+        run: |
+          fail=0
+          for f in $(find . -name "*.mdx" -not -path "./node_modules/*"); do
+            if ! head -5 "$f" | grep -q "^title:"; then
+              echo "::error file=$f::Missing frontmatter 'title:'"
+              fail=1
+            fi
+          done
+          exit $fail
+      - name: Forbid Web3 regressions
+        run: |
+          # Block any PR that reintroduces pivot-era terms outside the allowlisted meta-docs.
+          # Allowlisted files can reference these terms because they exist to explain, redirect, or disclaim.
+          banned='(tokenomics|\$SINT|airdrop|ASI-1 Mini|Fetch\.ai|Agentverse|Trust Wallet|MetaMask|SINT token|our token)'
+          allowlist='(origin\.mdx|INK-TEARDOWN\.md|REDIRECT-IMPLEMENTATION\.md|CONTRIBUTING\.md|README\.md|press\.mdx|\.github/workflows/)'
+          hits=$(grep -RInE "$banned" --include="*.mdx" --include="*.md" --include="*.yml" . | grep -vE ":[^:]*/($allowlist)" || true)
+          if [ -n "$hits" ]; then
+            echo "::error::Pivot-era terminology detected outside allowlisted files. Review and either remove or update allowlist in pr-check.yml."
+            echo "$hits"
+            exit 1
+          fi

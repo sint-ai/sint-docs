@@ -1,0 +1,84 @@
+---
+title: "SINT Operator Platform"
+description: "The runtime that ships Operators. Console, Commons, Memory, Cron, Canon, and Pipelines — all running under the Protocol."
+---
+
+# SINT Operator Platform (SOP)
+
+The runtime that ships Operators. SOP is what we use internally to build, deploy, and run Operators for clients today. A self-serve public beta is planned for Q3.
+
+## Components
+
+| Component | One-line | Status |
+|---|---|---|
+| [Console](/platform/console/overview) | The operator's seat: live runs, ledger view, approvals, dashboards | Beta (client access) |
+| [Commons](/platform/commons/overview) | Shared library: skills, components, policies | Beta |
+| [Memory](/platform/memory/overview) | Versioned per-tenant working state | Beta |
+| [Cron](/platform/cron/overview) | Scheduled and event triggers | Beta |
+| [Canon](/platform/canon/overview) | Agent-readable knowledge repo (deterministic retrieval) | Beta v0.4 (also OSS) |
+| [Pipelines](/platform/pipelines/overview) | YAML pipeline definitions that compile to executable graphs | Beta |
+| **M8 Guardrails** | Pre-production safety rails | Internal |
+
+Every component runs under the [Protocol](/protocol/overview). Every action a Platform-deployed Operator takes is governed by the same Gate, Engine, and Evidence Ledger as any other Protocol deployment.
+
+## How they fit
+
+```
+   Operator (Document Intelligence, Voice, Revenue, ...)
+                       │
+       ┌───────────────┴────────────────┐
+       │                                │
+       ▼                                ▼
+   Pipelines (YAML)             Canon (knowledge)
+       │                                │
+       ▼                                │
+   Memory (state) ◄────────────────────┘
+       │
+       ▼
+   Cron (schedule) ──► triggers Pipelines
+       │
+       ▼
+   Commons (skills, components) ── reused by every Operator
+       │
+       ▼
+   Console (operator's seat) ── inspect, approve, intervene
+       │
+       ▼
+   PROTOCOL (Bridge / Gate / Engine / Evidence Ledger)
+```
+
+## Who runs the Platform today
+
+- **SINT Labs (Agency)** — every Operator we deliver runs on SOP. Clients see the Console; we run the underlying infrastructure.
+- **Client-hosted (limited)** — for clients with regulatory requirements that mandate self-hosting, we ship SOP into their environment with a deployment runbook.
+
+## Public beta — what's planned
+
+Q3 2026 (target): self-serve signup. Bring your own LLM provider, your own tenants, your own Operators. Pricing TBD; expect a per-tenant base plus usage.
+
+Until then, [contact](https://sint.gg/contact) for early access.
+
+## M8 Guardrails
+
+A set of assertion rails that run against an Operator's Pipeline graph before execution and against its ledger entries after:
+
+- No T0→T3 plans without a declared escalation
+- No action without a declared ledger write
+- No external tool call without a capability token in scope
+- No Face surface without a declared Widget Layer budget
+- No Pipeline that issues actions outside its declared action classes
+
+Guardrail failures block the deploy. M8 is part of every staging environment for every Operator we ship.
+
+## What SOP is not
+
+- **Not an LLM provider.** Bring your own (Anthropic, OpenAI, your own).
+- **Not an inference runtime.** Inference happens at your provider; SOP orchestrates the agents and enforces the envelope.
+- **Not a chatbot platform.** Operators are workflow systems; conversational surfaces (like [Face](/face/overview)) are optional.
+- **Not a marketplace.** No "agent store." Operators are bespoke; the path to share an Operator pattern is a [Commons](/platform/commons/overview) skill or a Canon template, not a listing.
+
+## Continue
+
+- [Console](/platform/console/overview) — start here if you're an operator
+- [Pipelines](/platform/pipelines/overview) — start here if you're building
+- [Canon](/platform/canon/overview) — start here if you're modeling knowledge

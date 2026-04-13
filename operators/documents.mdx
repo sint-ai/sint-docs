@@ -1,0 +1,96 @@
+---
+title: "Document Intelligence Operator"
+description: "Autonomous intake, classification, extraction, and routing for contracts, claims, filings, and other client-submitted documents."
+---
+
+# Document Intelligence Operator
+
+**One-liner:** Ingests documents, classifies them, extracts the fields that matter, and hands a review-ready summary to the right person — under an auditable envelope.
+
+## What it replaces
+
+- Paralegal or intake analyst time on document classification and extraction
+- Manual triage queues in contract management, claims, underwriting, compliance intake
+- Bespoke Python/regex pipelines that drift on every format change
+
+## System
+
+```
+Sources (email, Dropbox, SFTP, webhook)
+              ▼
+        ┌─────────┐
+        │  OCR    │  if scan
+        └────┬────┘
+             ▼
+        ┌────────────┐
+        │ Classifier │  ← T1 (≥ floor) / T2 (< floor)
+        └────┬───────┘
+             ▼
+        ┌────────────┐
+        │ Extractor  │
+        └────┬───────┘
+             ▼
+        ┌──────────────┐
+        │ Jurisdiction │  ← T2 if flagged
+        │ check        │
+        └────┬─────────┘
+             ▼
+        ┌──────────────┐
+        │ Summary      │
+        │ (client schema)
+        └────┬─────────┘
+             ▼
+        ┌────────────┐
+        │  Router    │
+        └────┬───────┘
+             ▼
+        ┌────────────┐
+        │  Notify    │
+        └────────────┘
+```
+
+## Safety envelope
+
+| Tier | Action classes |
+|---|---|
+| T0 | `ocr.run`, `extract.read` |
+| T1 | `classify.doc` (confidence ≥ floor), `extract.fields`, `summary.write`, `route.attorney-queue` |
+| T2 | `classify.doc` (confidence < floor), `summary.write` (jurisdictional flag), any out-of-template route |
+| T3 | Any write outside the intake namespace |
+| T4 | Any document routed to external counsel or regulator |
+
+Hard limits:
+
+- PII redaction before any LLM prompt
+- Confidence floor (default 0.82) for autonomous routing
+- Per-document-type approver map
+- No write-back to client-facing systems without T3 approval
+
+## Representative run (ledger)
+
+```
+0x7a1c…  2026-03-04T08:11:04Z  T1  intake.email.received         allowed
+0x88d2…  2026-03-04T08:11:06Z  T0  ocr.page[1-14]                allowed
+0x9f44…  2026-03-04T08:11:09Z  T1  classify.doc                  allowed (0.94)
+0xaa19…  2026-03-04T08:11:10Z  T1  extract.parties+dates         allowed
+0xbc22…  2026-03-04T08:11:11Z  T2  jurisdictional.NY-flag        escalated-approved (human)
+0xcf80…  2026-03-04T08:11:43Z  T1  summary.write                 allowed
+0xd103…  2026-03-04T08:11:44Z  T1  route.attorney-queue          allowed
+```
+
+## Metrics
+
+- Intake-to-summary time
+- Classification accuracy (vs weekly blinded audit)
+- Extraction field precision/recall
+- Human-hours reclaimed
+- 100% ledger coverage of documents touched
+
+## Pricing band
+
+$12k–$28k/mo retainer + $1.20–$4.50 per document above volume floor. Illustrative.
+
+## Continue
+
+- [Voice Operator](/operators/voice)
+- [Safety envelope](/operators/safety-envelope)

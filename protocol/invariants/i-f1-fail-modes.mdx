@@ -1,0 +1,74 @@
+---
+title: "I-F1 — Fail modes"
+description: "Fail-open on infrastructure. Fail-closed on safety. The two are never confused."
+---
+
+# I-F1 — Fail modes
+
+## Statement
+
+Two rules:
+
+1. **Safety-critical paths fail closed.** When safety enforcement (token verification, attenuation check, policy evaluation, ledger append) cannot complete, the action is denied.
+2. **Non-safety infrastructure fails open.** When non-safety infra (Economy metering, rate limiter, telemetry sink, ProofReceipt hook) cannot complete, the action proceeds; the failure is logged separately.
+
+The two categories are explicit, named, and reviewed at design time. Nothing is "kind of safety-critical."
+
+## Why
+
+A protocol that fails closed on everything becomes inoperable when one ancillary service hiccups. A protocol that fails open on everything provides no real guarantee. The Protocol picks the line explicitly and refuses to blur it.
+
+## What's safety-critical (fail closed)
+
+| Subsystem | What happens on failure |
+|---|---|
+| Token signature verification | Deny |
+| Token expiry / revocation check | Deny |
+| Attenuation enforcement (I-T1) | Deny |
+| Physical constraint check | Deny |
+| Spend-cap enforcement (when the action is spend-cap-bound) | Deny if Economy unreachable past staleness threshold |
+| Policy evaluation against cached policies | Deny if policies missing entirely |
+| Ledger append (Engine, pre-execution) | Refuse to execute |
+| Ledger append (Engine, post-execution outcome) | Hard alert; outcome rewritten when storage recovers |
+| E-stop signal handling | Halt unconditionally |
+
+## What's non-safety infrastructure (fail open)
+
+| Subsystem | What happens on failure |
+|---|---|
+| Economy meter emission | Action proceeds; record queued for retry |
+| Rate limiter backend | Action proceeds (other gates still apply) |
+| Telemetry sink (metrics, logs) | Action proceeds; telemetry buffered |
+| ProofReceipt hook | Action proceeds; receipt slot left empty; alert raised |
+| Console/Avatar surface unreachable | Approvals enqueue; no surface render until recovery |
+| Notification (Slack/email/SMS) | Action proceeds; notification queued |
+
+## Rate limiter as the canonical example
+
+The rate limiter is non-safety. If Redis is unreachable:
+
+- The action proceeds (other Gate checks still apply).
+- A counter `rate_limiter_unavailable` increments.
+- The Operator's owner is alerted if the counter exceeds threshold.
+
+Why isn't rate limiting safety-critical? Because rate limits are about **cost** and **politeness**, not about whether the action is permitted. Permission is decided by tokens and policy. Rate limiting is a separate concern that doesn't deserve to take down the safety path.
+
+If you have a deployment where rate limits *are* safety-critical (e.g. a robot that must not exceed a duty cycle), encode the constraint in the **capability token** (`physical.max_velocity_mps`, custom rate fields), not the rate limiter. The token is the safety layer; the limiter is comfort infrastructure.
+
+## What enforces it
+
+- **Code organization.** Safety subsystems live under `packages/gateway-server/src/safety/` and `packages/engine/src/safety/`. Non-safety subsystems live elsewhere. Imports across the boundary are flagged by lint.
+- **CodeQL rules.** A custom rule rejects code that catches an exception in a safety subsystem and continues. Safety subsystems must `Result.Err` and propagate.
+- **Property test:** `pnpm run test:invariants:f1` — for each subsystem, injects unavailability and asserts the documented behavior (deny vs. proceed).
+
+## What a violation looks like
+
+Two failure modes:
+
+1. **Silent fail-open in safety.** A safety check that swallows an error and proceeds. CodeQL catches the obvious cases; reviewers catch the subtle cases.
+2. **Avoidable fail-closed in non-safety.** A non-safety subsystem that takes down the safety path because of a circular dependency. Architecture reviews catch this; the package boundary tests assert no safety code depends on non-safety code.
+
+## Continue
+
+- [I-P1 — Interface-first persistence](/protocol/invariants/i-p1-persistence)
+- [Economy (L4)](/protocol/layers/economy)

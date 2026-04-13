@@ -1,0 +1,58 @@
+---
+title: "MCP Security Analysis"
+description: "Architectural Vulnerabilities in the Model Context Protocol. arXiv:2601.17549."
+---
+
+# MCP Security Analysis
+
+**Architectural Vulnerabilities in the Model Context Protocol**
+
+- **arXiv:** [2601.17549](https://arxiv.org/abs/2601.17549)
+- **Status:** preprint
+
+## Abstract
+
+We document ten real-world breaches affecting MCP (Model Context Protocol) implementations in the eight months following the protocol's widespread adoption. The most severe is a CVSS 9.6 command injection in an MCP client package with 437,000 downloads. We argue the breaches are not implementation defects but consequences of architectural omissions in MCP itself: no capability model, no attenuation, no append-only audit, no real-time revocation.
+
+We propose a small, enforceable set of invariants — broadly mirroring SINT's I-T1, I-G2, and I-G3 — as a minimum bar for any protocol ceding action authority to an LLM.
+
+## The ten breaches
+
+The paper documents ten incidents by date, severity, root cause class, and the architectural omission that made each tractable. Common themes:
+
+- Tokens that grant blanket access to a tool surface, with no scoping per agent
+- No mechanism for real-time revocation; compromised credentials remain valid until rotation
+- No append-only audit; post-incident reconstruction depends on application-level logs that may be missing or modified
+- Implicit trust between the agent runtime and the tool layer
+
+## CVSS 9.6 command injection (lead case)
+
+A widely-used MCP client package implemented tool invocation by string interpolation into a shell command, with no escaping. Any tool a connected MCP server exposed could be invoked with arbitrary shell payloads. Affected: 437,000 downloads. Disclosure timeline and remediation in the paper.
+
+## Why this is architectural, not a bug
+
+A capability model would have prevented the worst case. With a per-agent capability token, a compromised tool can only invoke what the agent's token authorizes; a compromised agent can only invoke what its own token authorizes. The shell injection vector remains, but the blast radius is bounded by the token scope, not by "anything the connecting user could do."
+
+The Protocol's response: capability tokens with attenuation as the universal pre-action check ([I-T1](/protocol/invariants/i-t1-attenuation)), append-only hash-chained audit ([I-G3](/protocol/invariants/i-g3-ledger)), real-time revocation with sub-50ms propagation, and an unconditional E-stop ([I-G2](/protocol/invariants/i-g2-estop)).
+
+## Why MCP isn't enough — and why we don't replace it
+
+MCP is useful for what it was designed for: standardizing how agents discover and invoke tools. Its omissions are in the safety layer, not in the discovery layer. SINT Protocol is complementary: an MCP server can sit behind a Protocol [Gate](/protocol/layers/gate) and gain the missing capability model without changing the MCP surface.
+
+## Citation
+
+```
+@misc{mcpsec2026,
+  title         = {Architectural Vulnerabilities in the Model Context Protocol},
+  author        = {SINT Labs Research},
+  year          = {2026},
+  eprint        = {2601.17549},
+  archivePrefix = {arXiv},
+}
+```
+
+## Continue
+
+- [ROSClaw](/research/rosclaw)
+- [Protocol overview](/protocol/overview)
+- [I-T1 attenuation](/protocol/invariants/i-t1-attenuation)

@@ -1,0 +1,189 @@
+---
+title: "Pipelines YAML spec"
+description: "The full schema of a Pipeline definition."
+---
+
+# Pipelines YAML spec
+
+The complete schema of a Pipeline YAML file. The compiler enforces this schema; deviations are rejected at deploy time.
+
+## Top-level
+
+```yaml
+name: string                       # required; lowercase, hyphen-separated
+version: string                    # required; semver
+operator: string                   # required; the Operator class this implements
+description: string                # optional but recommended
+maintainer: string                 # optional; handle or role
+
+imports: [Import]                  # Commons artifacts pinned per-version
+triggers: [Trigger]                # what fires this Pipeline
+stages: [Stage]                    # the graph
+
+action_classes: [string]           # explicit declaration; compiler verifies
+capabilities: [string]             # explicit declaration; compiler verifies
+outputs: [Output]                  # systems of record this Pipeline writes to
+
+policies: [string]                 # optional; policy bundles to require
+guardrails: GuardrailsConfig       # optional overrides; default: strict
+```
+
+## Imports
+
+```yaml
+imports:
+  - skill:     "@commons/draft-outbound-email@^2.0.0"
+  - skill:     "@commons/parse-reply-intent@^1.4.0"
+  - component: "@commons/pii-redactor@^2.0.0"
+  - policy:    "@commons/policy-defaults-services@^4.0.0"
+  - template:  "@commons/contract-summary@^1.1.0"
+  - adapter:   "@commons/adapter-hubspot@^3.0.0"
+```
+
+Imports are pinned. Bumping a major version is a Pipeline change, with tests.
+
+## Triggers
+
+```yaml
+triggers:
+  - kind: schedule
+    cron: "0 6 * * MON"
+    timezone: America/Los_Angeles
+
+  - kind: webhook
+    path: "/webhooks/docusign-signed"
+    auth:
+      kind: hmac
+      secret_ref: "secrets/docusign"
+
+  - kind: event
+    source: "engine.outcome"
+    filter:
+      action_class: "doc.summary.write"
+      tier: 2
+
+  - kind: manual
+    role: operator
+```
+
+Trigger kinds: `schedule`, `webhook`, `event`, `manual`.
+
+## Stages
+
+A Stage is one of: `skill`, `component`, `action`, `parallel`, `branch`, `loop`, `wait`.
+
+### Skill stage
+
+```yaml
+- id: draft
+  skill: "@commons/draft-outbound-email@^2.0.0"
+  inputs:
+    persona: ${score.persona}
+    context: ${assemble.context}
+  on_error: escalate                # default: fail
+```
+
+### Component stage
+
+```yaml
+- id: redact
+  component: "@commons/pii-redactor@^2.0.0"
+  inputs: { text: ${ocr.text} }
+```
+
+### Action stage
+
+```yaml
+- id: send
+  action:
+    class: "email.send"
+    params:
+      to: ${draft.recipient}
+      subject: ${draft.subject}
+      body: ${draft.body}
+  tier: 1                            # explicit; must match policy
+  approval:                          # only relevant for tier ≥ 2
+    route: { kind: console, workspace: sales }
+    timeout: 4h
+```
+
+### Parallel stage
+
+```yaml
+- id: enrich
+  parallel:
+    - id: linkedin
+      skill: "@commons/linkedin-enrich@^1.0.0"
+      inputs: { lead: ${score.lead} }
+    - id: signals
+      skill: "@commons/intent-signals@^1.0.0"
+      inputs: { domain: ${score.lead.domain} }
+```
+
+### Branch stage
+
+```yaml
+- id: route
+  branch:
+    when:
+      - condition: "${classify.confidence} >= 0.82"
+        next: route-autonomous
+      - condition: "true"             # default
+        next: route-human
+```
+
+### Loop stage
+
+```yaml
+- id: paginate
+  loop:
+    over: ${list.pages}
+    as: page
+    body:
+      - id: process
+        skill: "@commons/process-page@^1.0.0"
+        inputs: { page: ${page} }
+    max_iterations: 200
+```
+
+### Wait stage
+
+```yaml
+- id: wait-for-reply
+  wait:
+    for:
+      kind: event
+      source: "inbox.message"
+      filter:
+        thread_id: ${send.thread_id}
+    timeout: 7d
+    on_timeout: escalate
+```
+
+## Outputs
+
+Declare what systems of record this Pipeline writes to. M8 Guardrails enforces that no action targets a system not in this list.
+
+```yaml
+outputs:
+  - { kind: crm,      vendor: hubspot,    namespace: "acme.production" }
+  - { kind: calendar, vendor: google,     account:   "ops@acme.com" }
+  - { kind: email,    sender:  "sales@acme.com" }
+```
+
+## Guardrails config
+
+Defaults are strict. Overrides require justification and reviewer sign-off.
+
+```yaml
+guardrails:
+  allow_undeclared_action_classes: false        # default
+  allow_vector_reads_on_safety_path: false      # default
+  max_runtime_seconds: 3600                      # per Run
+  max_actions_per_run: 500
+```
+
+## Continue
+
+- [Compilation](/platform/pipelines/compilation)
+- [Examples](/platform/pipelines/examples)

@@ -1,0 +1,159 @@
+---
+title: "Ecosystem map"
+description: "How Protocol, Operators, Platform, Face, Canon, Commons, and the rest of the SINT ecosystem fit together — on one page."
+---
+
+# Ecosystem map
+
+One page. Everything we ship and how it fits.
+
+## The two products
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│   SINT PROTOCOL                       SINT OPERATORS            │
+│   ─────────────                       ───────────────           │
+│   Open-source standard                Custom autonomous         │
+│   Apache 2.0                          workflow systems          │
+│   Adopted by us, adoptable by you     Built and run by us       │
+│                                       under the Protocol        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+Operators are built on the Protocol. The Protocol is usable without Operators. Both ship with the same supporting runtime.
+
+## The full stack
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│   Operator client          Operator client          Operator     │
+│   (Document Intel)         (Voice)                  (Revenue)    │
+│        │                        │                        │       │
+│        └────────────────────────┴────────────────────────┘       │
+│                                 │                                │
+│                       SINT FACE (interface)                      │
+│                       ─────────────────────                      │
+│                       Voice-first 3D avatar                      │
+│                       AI Widget Layer                            │
+│                       Conversation Compiler                      │
+│                                 │                                │
+│                       SINT CONSOLE (control)                     │
+│                       ──────────────────────                     │
+│                       Approvals · Dashboards                     │
+│                       Run inspection · Ledger view               │
+│                                 │                                │
+│   ┌─────────────────────────────┴────────────────────────────┐   │
+│   │                                                          │   │
+│   │   PIPELINES        MEMORY         CRON          COMMONS  │   │
+│   │   ─────────        ──────         ────          ───────  │   │
+│   │   YAML →           Versioned      Scheduled     Skills,  │   │
+│   │   exec graph       per-tenant     triggers      shared   │   │
+│   │                    state                        components│   │
+│   │                                                          │   │
+│   │                         CANON                            │   │
+│   │                         ─────                            │   │
+│   │                  Agent-readable knowledge repo           │   │
+│   │                                                          │   │
+│   └──────────────────────────┬───────────────────────────────┘   │
+│                              │                                   │
+│                    SINT PROTOCOL                                 │
+│                    ─────────────                                 │
+│                    Bridge → Gate → Engine → Economy → Avatar     │
+│                    Five invariants. Five reference impls.        │
+│                                                                  │
+│                    Evidence Ledger (append-only, hash-chained)   │
+│                    Capability tokens (attenuation only)          │
+│                    Approval tiers (T0–T4)                        │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+## What each piece is
+
+### Layer 0 — The Protocol
+
+- **[SINT Protocol](/protocol/overview)** — the safety standard. Five layers, five invariants. Apache 2.0.
+  - **[Bridge](/protocol/layers/bridge)** — agent ↔ actuator translation
+  - **[Gate](/protocol/layers/gate)** — policy enforcement, allow/deny/escalate
+  - **[Engine](/protocol/layers/engine)** — execution + Evidence Ledger
+  - **[Economy](/protocol/layers/economy)** — optional metering / settlement
+  - **[Avatar](/protocol/layers/avatar)** — embodied human-in-the-loop surface
+
+### Layer 1 — The Platform (SOP)
+
+The runtime that ships Operators. Every component runs under Protocol.
+
+- **[Console](/platform/console/overview)** — the operator's seat: live runs, ledger, approvals, dashboards
+- **[Commons](/platform/commons/overview)** — shared library: skills, components, policies that any Operator can pull from
+- **[Memory](/platform/memory/overview)** — versioned per-tenant working state
+- **[Cron](/platform/cron/overview)** — scheduled and event triggers
+- **[Canon](/platform/canon/overview)** — agent-readable knowledge repo (deterministic retrieval, content-addressed)
+- **[Pipelines](/platform/pipelines/overview)** — YAML pipeline definitions that compile to executable graphs
+
+### Layer 2 — The Face
+
+- **[SINT Face](/face/overview)** — voice-first 3D interface
+  - [Architecture](/face/architecture) — audio in → ASR → agent → Conversation Compiler → TTS → blendshapes → Widget Layer
+  - [Widget Layer](/face/widget-layer) — contextual UI components spawned around the avatar
+  - [Conversation Compiler](/face/conversation-compiler) — fast-LLM rewrite for natural speech
+  - [Embed guide](/face/embed) — script tag, iframe, SDK
+
+### Layer 3 — The Operators
+
+Each is a complete autonomous workflow system. Six flagship workflows:
+
+- **[Revenue Operator](/operators/revenue)** — outbound, follow-up, pipeline hygiene, quote-to-cash
+- **[Document Intelligence Operator](/operators/documents)** — intake, classification, extraction
+- **[Voice Operator](/operators/voice)** — inbound/outbound voice for intake, scheduling, triage
+- **[Onboarding Operator](/operators/onboarding)** — client/employee onboarding to Day 1
+- **[CMO Operator](/operators/cmo)** — content production + distribution against a positioning brief
+- **[Inbox Operator](/operators/inbox)** — triage, draft, route, close loops on shared inboxes
+
+### Open-source supporting work
+
+- **[Canon](https://github.com/sint-ai/canon)** — agent-readable repo format, public reference implementation
+- **[gstack](https://github.com/sint-ai/gstack)** — skill pack for Claude-family agent stacks
+- **[ROSClaw replication](https://github.com/sint-ai/rosclaw-replication)** — replication package for the IROS 2026 paper
+
+### Research
+
+- **[ROSClaw](/research/rosclaw)** — empirical safety analysis of LLM-controlled physical AI (arXiv:2603.26997, IROS 2026)
+- **[MCP Security Analysis](/research/mcp-security)** — architectural vulnerability review of MCP (arXiv:2601.17549)
+
+## Naming reference
+
+| Component | Layer | Lives in | Status |
+|---|---|---|---|
+| Bridge | Protocol L1 | `@sint/bridge` | Stable |
+| Gate (Policy Gateway) | Protocol L2 | `@sint/gateway-server` | Stable |
+| Engine | Protocol L3 | `@sint/engine` | Stable |
+| Evidence Ledger | inside Engine | `@sint/engine/ledger` | Stable |
+| Economy | Protocol L4 (optional) | `@sint/economy-api` | API only |
+| Avatar | Protocol L5 | `@sint/avatar` | Beta |
+| Capability tokens | Protocol primitive | `@sint/tokens` | Stable |
+| Console | Platform | `@sint/console` | Beta |
+| Commons | Platform | `@sint/commons` | Beta |
+| Memory | Platform | `@sint/memory` | Beta |
+| Cron | Platform | `@sint/cron` | Beta |
+| Canon | Platform / OSS | `@sint/canon` (npm) + [sint-ai/canon](https://github.com/sint-ai/canon) (repo) | Beta v0.4 |
+| Pipelines | Platform | `@sint/pipelines` | Beta |
+| Face | Interface | `@sint/face` | Shipping v0.5 |
+| Conversation Compiler | inside Face | `@sint/face/compiler` | Shipping |
+| AI Widget Layer | inside Face | `@sint/face/widgets` | Shipping |
+| gstack | OSS tooling | [sint-ai/gstack](https://github.com/sint-ai/gstack) | Shipping v0.3 |
+
+## Two things this map intentionally leaves out
+
+1. **OpenClaw** — our internal 19-agent orchestration setup. It runs SINT Labs internally; it is not a public product. We mention it on [sint.gg/founder](https://sint.gg/founder) and [sint.gg/trust](https://sint.gg/trust) as proof we dogfood, and nowhere else.
+2. **M8 Guardrails** — pre-production safety rails we run against Operators in staging. Internal tooling. Available to Platform clients; not a standalone product.
+
+## Where to start, by role
+
+- **Engineer integrating the Protocol →** [Quickstart](/quickstart) → [Protocol Quickstart](/protocol/quickstart)
+- **Robotics safety researcher →** [ROSClaw](/research/rosclaw) → [Invariants](/protocol/invariants/overview)
+- **Operator client →** [Console overview](/platform/console/overview) → [Approvals](/platform/console/approvals)
+- **Buyer evaluating SINT →** [sint.gg/operators](https://sint.gg/operators) → [Trust](/trust)
+- **Press / analyst →** [Origin](/origin) → [Press kit](/press)

@@ -1,0 +1,88 @@
+---
+title: "Telemetry"
+description: "What an Operator logs, where it goes, how to access it, how long we keep it."
+---
+
+# Telemetry
+
+Operators emit three streams: the **Evidence Ledger** (auditable record of decisions and outcomes), **operational metrics** (Prometheus-compatible), and **traces** (OpenTelemetry).
+
+## Evidence Ledger
+
+The primary record. Every decision, outcome, approval, denial, modification, and infra event lands here. Append-only, hash-chained, continuously verified.
+
+- Access via [Console](/platform/console/overview) or the [HTTP API](/protocol/reference/api).
+- Export to client-controlled storage on a configurable schedule.
+- Retention default: 7 years (configurable per tenant; minimum 1 year for Operators we run).
+
+[Full Evidence Ledger reference →](/protocol/reference/evidence-ledger)
+
+## Operational metrics
+
+Prometheus-compatible metric series per Operator:
+
+| Metric | Type |
+|---|---|
+| `sint_operator_intake_total{operator,tenant}` | counter |
+| `sint_operator_decision_total{operator,tenant,decision}` | counter |
+| `sint_operator_outcome_total{operator,tenant,result}` | counter |
+| `sint_operator_action_latency_seconds{operator,tenant,action_class}` | histogram |
+| `sint_operator_approval_pending{operator,tenant,tier}` | gauge |
+| `sint_operator_approval_resolution_seconds{operator,tenant,tier}` | histogram |
+| `sint_ledger_append_latency_seconds{tenant}` | histogram |
+| `sint_ledger_chain_intact{tenant}` | gauge (1 / 0) |
+| `sint_token_revocation_propagation_seconds{tenant}` | histogram |
+
+Operator-specific metrics also exist (e.g. `sint_revenue_op_replies_per_1k_touches`). Each Operator page documents its specific metrics.
+
+Retention default: 90 days at full resolution; downsampled archives for 2 years.
+
+## Traces
+
+OpenTelemetry-compatible spans per request. Each ledger entry's `trace_id` is the span ID; you can correlate ledger entries with traces in your observability backend.
+
+- Default exporter: OTLP/HTTP
+- Sampling: 100% of denied/escalated decisions; configurable for allowed decisions (default 10%)
+
+## Where it ships
+
+For Agency-operated Operators on the SINT Operator Platform:
+
+| Stream | Default sink |
+|---|---|
+| Evidence Ledger | Per-tenant Postgres + Redis index; export configurable |
+| Metrics | Per-tenant Prometheus; Grafana dashboards in Console |
+| Traces | OTLP collector; sampled to your chosen backend |
+| Errors | Sentry, PII-scrubbed |
+
+For client-hosted deployments, you bring your own sinks. The Operator emits on standard interfaces.
+
+## What's not collected
+
+- **No prompt content beyond the redacted version sent to the LLM.** The full agent reasoning trace is not captured by default.
+- **No PII beyond what the action requires.** Per-tenant configuration controls what counts as PII.
+- **No client end-user data outside the Operator's scoped namespace.**
+- **No third-party LLM provider data.** We don't intercept; we log what the Operator does, not what the model generates internally.
+
+## Access
+
+- **Operator owner:** full read on the per-tenant ledger and metrics.
+- **Auditor (compliance, GC):** read-only access to the ledger; metrics scoped to operator-level views.
+- **Approver:** read on the items routed to them; their own approval history.
+- **Engineer (us, on-call):** scoped break-glass access with a separate auditing ledger.
+
+All access is governed by tenant-side RBAC and is itself ledgered.
+
+## Retention overrides
+
+A tenant can extend retention; we don't shorten below the contractual minimum. Common overrides:
+
+- HIPAA workflows: 6 years from last touch
+- Legal/contract workflows: 7+ years per matter type
+- Financial settlement workflows: 7+ years per applicable regulation
+
+## Continue
+
+- [Evidence Ledger](/protocol/reference/evidence-ledger)
+- [Console approvals](/platform/console/approvals)
+- [Trust](/trust)

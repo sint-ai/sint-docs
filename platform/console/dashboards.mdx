@@ -1,0 +1,45 @@
+---
+title: "Dashboards"
+description: "Per-Operator and cross-Operator metrics surfaced from the Evidence Ledger and Prometheus."
+---
+
+# Dashboards
+
+Console dashboards are live views over the [Evidence Ledger](/protocol/reference/evidence-ledger) and the per-tenant Prometheus.
+
+## Default dashboards
+
+Every tenant gets these out-of-the-box:
+
+| Dashboard | What it shows |
+|---|---|
+| **Operator overview** | Per-Operator: runs/day, decisions by tier, allow/deny/escalate breakdown, p50/p99 latency, error rate |
+| **Approvals** | Pending count by tier, resolution time histogram, approver utilization |
+| **Ledger health** | Append latency, hash chain status, verify-chain success rate, divergence alerts |
+| **Token health** | Active tokens, revocations/day, propagation latency, attenuation rejections |
+| **E-stop activity** | Fires per tenant per quarter, time-to-clear, post-clear integrity reports |
+| **Cost** | LLM spend, infra cost, per-action cost, Operator unit economics |
+
+## Per-Operator dashboards
+
+Each flagship Operator ships its own dashboard with workflow-specific metrics. See the per-Operator pages:
+
+- [Revenue](/operators/revenue#metrics)
+- [Documents](/operators/documents#metrics)
+- [Voice](/operators/voice#metrics)
+- [Onboarding](/operators/onboarding#metrics)
+- [CMO](/operators/cmo#metrics)
+- [Inbox](/operators/inbox#metrics)
+
+## Custom dashboards
+
+Build your own with Grafana-compatible JSON; drop into `dashboards/` in your Pipeline repo. Console renders them inline.
+
+## Reports
+
+Weekly and monthly reports auto-generated as PDFs and emailed to the tenant Owner. Customizable per tenant.
+
+## Continue
+
+- [Approvals](/platform/console/approvals)
+- [Telemetry](/operators/telemetry)

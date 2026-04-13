@@ -1,0 +1,40 @@
+---
+title: "The five invariants"
+description: "Formal properties the Protocol enforces. Property-tested in CI on every commit."
+---
+
+# The five invariants
+
+The Protocol's safety guarantees rest on five formal properties. Each is property-tested in CI on every commit. Each has a test suite that generates random inputs and asserts the property holds.
+
+PRs that weaken any invariant are closed. This is non-negotiable. See the repo's [`AGENTS.md`](https://github.com/sint-ai/sint-protocol/blob/main/AGENTS.md).
+
+## The five
+
+| Code | Name | Statement |
+|---|---|---|
+| **[I-T1](/protocol/invariants/i-t1-attenuation)** | Attenuation only | Delegated tokens can only reduce the parent's permission set. They can never escalate. |
+| **[I-G2](/protocol/invariants/i-g2-estop)** | E-stop universality | The hardware E-stop bypasses all token checks across all non-terminal DFA states. It is unconditional. |
+| **[I-G3](/protocol/invariants/i-g3-ledger)** | Ledger primacy | Every decision is committed to the Evidence Ledger before any action's side effect can fire. |
+| **[I-F1](/protocol/invariants/i-f1-fail-modes)** | Fail-open on infra, fail-closed on safety | Economy and rate-limit infra failures do not block the safety path. Safety-envelope violations always block action. |
+| **[I-P1](/protocol/invariants/i-p1-persistence)** | Interface-first persistence | Storage adapters implement clean interfaces; the test harness runs against any conforming adapter. |
+
+## How they're enforced
+
+Three layers of enforcement:
+
+1. **Type system.** `Result<T, E>` discriminated unions across the safety boundary; the safety path cannot throw.
+2. **Property tests.** Each invariant has a property-based test suite (`pnpm run test:invariants`) that runs in CI. I-T1 is tested across 10,000 randomized delegation chains per CI run; I-G2 across 2,000 randomized Operator states with E-stop injection; I-G3 across 5,000 randomized action sequences.
+3. **Runtime assertions.** Critical paths assert their invariants in production, with violations producing both a hard failure and an alert.
+
+Zero invariant violations have been observed in CI since the property test suite landed (Oct 2025).
+
+## Continue
+
+Each invariant has its own page covering the formal statement, the rationale, what enforces it, what a violation would look like, and the property-test suite.
+
+- [I-T1 — Attenuation only](/protocol/invariants/i-t1-attenuation)
+- [I-G2 — E-stop universality](/protocol/invariants/i-g2-estop)
+- [I-G3 — Ledger primacy](/protocol/invariants/i-g3-ledger)
+- [I-F1 — Fail modes](/protocol/invariants/i-f1-fail-modes)
+- [I-P1 — Interface-first persistence](/protocol/invariants/i-p1-persistence)

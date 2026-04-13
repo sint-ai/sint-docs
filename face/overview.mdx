@@ -1,0 +1,68 @@
+---
+title: "SINT Face"
+description: "Voice-first 3D agent interface. The visual layer of every Operator that wants one."
+---
+
+# SINT Face
+
+Face is the voice-first 3D interface for SINT Operators. Speak to it; it answers; it spawns the UI it needs to finish the job.
+
+It's a reference [Avatar](/protocol/layers/avatar) implementation — a conforming surface that handles approvals, surfaces ledger events, and presents Operator interactions. It's also a standalone product Operators can embed in any host app.
+
+## Components
+
+| Component | Purpose |
+|---|---|
+| **Avatar runtime** | R3F-based 3D avatar with ARKit blendshape animation and Mixamo body animation |
+| **[Conversation Compiler](/face/conversation-compiler)** | Fast-LLM rewrite that turns agent output into natural speakable text |
+| **[AI Widget Layer](/face/widget-layer)** | Contextual React components spawned around the avatar |
+| **TTS pipeline** | Streaming TTS with backpressure-aware audio dispatch |
+| **ASR pipeline** | Streaming ASR with barge-in support |
+
+## Tech stack
+
+- `react-three-fiber` (R3F) for the 3D scene
+- ElevenLabs for TTS (streaming)
+- ARKit blendshape standard (52 shapes) for facial animation
+- Mixamo for body animation (28-clip library)
+- WebRTC + Web Audio API for low-latency audio
+- React + Tailwind for the Widget Layer
+
+## Where it runs
+
+| Surface | Host |
+|---|---|
+| `face.sint.gg` | The hosted reference deployment (try at the home page on sint.gg) |
+| Operator clients | Embedded in client-facing surfaces via the Face SDK |
+| SOP Console | Embedded as the conversational alternative to the keyboard-driven Console |
+| Custom apps | Embed via `<sint-face>` web component or React component |
+
+## Performance
+
+| Metric | Value (v0.5+) |
+|---|---|
+| Time to first audio (median) | 340 ms |
+| Time to first audio (p95) | 780 ms |
+| Frame variance (perceptual smoothness) | 2.1× improved over v0.4 |
+
+The performance gain in v0.5 came from rewriting the path so that Conversation Compiler emits partial spoken chunks to TTS while the agent is still producing tool calls; blendshape extraction runs on audio frames as they arrive.
+
+## What Face is
+
+- A reference Avatar implementation
+- A voice-first conversational surface for Operators
+- A composable runtime that hosts the AI Widget Layer
+- An embeddable component for any host app
+
+## What Face is not
+
+- A general-purpose virtual assistant. Face is bound to an [agent endpoint](/face/embed); it doesn't reason on its own.
+- A persona-as-a-service. Face uses voices and animations, but the personality is a property of the agent, not the avatar.
+- A replacement for [Console](/platform/console/overview). Operators who live in approvals all day prefer the keyboard-driven Console; Face is for human surfaces, customer-facing interactions, and conversational scenarios.
+
+## Continue
+
+- [Architecture](/face/architecture)
+- [Embed guide](/face/embed)
+- [AI Widget Layer](/face/widget-layer)
+- [Conversation Compiler](/face/conversation-compiler)

@@ -1,0 +1,76 @@
+---
+title: "Contributing"
+description: "How to contribute to SINT Protocol."
+---
+
+# Contributing
+
+Contributions welcome. The Protocol is Apache 2.0. There are non-negotiable invariants. Read this page before opening a PR.
+
+## Before you start
+
+1. Read [Protocol overview](/protocol/overview), [Architecture](/protocol/architecture), and the [five invariants](/protocol/invariants/overview). The invariants are formal properties, not opinions. PRs that weaken any invariant are closed.
+2. Read [`AGENTS.md`](https://github.com/sint-ai/sint-protocol/blob/main/AGENTS.md) in the repo. Even if you're a human, this document encodes the conventions of the codebase.
+3. Search [issues](https://github.com/sint-ai/sint-protocol/issues) and [discussions](https://github.com/sint-ai/sint-protocol/discussions) for prior context.
+
+## Setup
+
+```bash
+git clone https://github.com/sint-ai/sint-protocol
+cd sint-protocol
+pnpm install
+pnpm run build
+pnpm run test
+```
+
+Pre-commit hooks run lint + format on staged files.
+
+## Workflow
+
+1. Branch from `main`. Convention: `feat/<topic>`, `fix/<topic>`, `autoresearch/<topic>` for experiments.
+2. Make your change. Include tests. Property tests for any change touching invariant-enforcing code.
+3. Run `pnpm run test` and `pnpm run lint`.
+4. Open a PR using the template. Link related issues.
+5. Sign your commits — `main` requires GPG-signed commits.
+6. CI runs build, test, lint, CodeQL. All must pass.
+7. One maintainer review for most changes; two for changes touching `packages/gateway-server`, `packages/engine/src/ledger`, or any `docs/invariants*`.
+
+## Code conventions
+
+- TypeScript strict mode. Never `any`; use `unknown` and narrow.
+- `Result<T, E>` for fallible operations; never throw across the safety boundary.
+- Tests colocated: `foo.ts` → `foo.test.ts`.
+- One feature per PR. Refactors and feature changes do not mix.
+- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/).
+
+## What we will not accept
+
+- PRs that weaken any of the five invariants.
+- PRs that add a token, payment, or settlement requirement to the safety path.
+- PRs that introduce dependencies on unaudited third-party agent frameworks.
+- PRs without tests.
+- PRs that bundle multiple unrelated changes.
+
+## Adding a new package
+
+Open a discussion before opening a PR. We're conservative about expanding the surface; new packages should have a clear consumer and a clear interface.
+
+## Documenting your change
+
+If your change is user-visible:
+
+- Update the relevant page in this docs site (PR against [github.com/sint-ai/sint-docs](https://github.com/sint-ai/sint-docs)).
+- Update `CHANGELOG.md` under `[Unreleased]`.
+- Add an ADR if the change is architectural (under `docs/adr/` in the protocol repo).
+
+## Reporting bugs
+
+Use the bug report issue template. Include reproduction steps, expected behavior, actual behavior, and your environment.
+
+## Reporting security issues
+
+Email **security@sint.gg**. Do not file public issues. See [Security](/protocol/security).
+
+## License
+
+By contributing, you agree your contributions will be licensed under Apache 2.0.

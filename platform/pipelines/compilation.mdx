@@ -1,0 +1,90 @@
+---
+title: "Pipeline compilation"
+description: "How YAML becomes an executable graph, what the compiler checks, and what M8 Guardrails enforces."
+---
+
+# Pipeline compilation
+
+The compiler turns a Pipeline YAML into an executable `PipelineGraph` and runs every check before the Pipeline can be deployed.
+
+## Stages of compilation
+
+```
+1. Parse YAML → AST
+2. Schema validation
+3. Import resolution + version pin
+4. Reference type-check (${...} across stages)
+5. Action class set computation
+6. Capability set computation
+7. Output target verification
+8. M8 Guardrails
+9. Emit PipelineGraph
+```
+
+A failure at any stage is a hard fail with a structured error pointing at the YAML location.
+
+## Schema validation
+
+The compiler validates the YAML against the [Pipeline JSON Schema](https://github.com/sint-ai/sint-protocol/blob/main/packages/pipelines/schema.json). Errors include line/column.
+
+## Reference type-check
+
+Every `${stage.field}` reference is type-checked. Inputs to a stage must satisfy the stage's declared input schema (from the underlying Skill/Component manifest). Type mismatches are rejected.
+
+## Action class verification
+
+The compiler walks every `action` stage in the graph and computes the set of action classes the Pipeline can issue. This must equal the `action_classes` declaration on the Pipeline. The compiler rejects:
+
+- Action classes used in stages but not in the declaration
+- Action classes in the declaration but not in any stage (warning, not error)
+
+## Capability verification
+
+Each Skill, Component, and action declares its required capability scopes. The compiler unions these and verifies the Pipeline's `capabilities` declaration matches.
+
+## Output verification
+
+Each `action` stage's effects are mapped to output targets. The compiler verifies every target is in the Pipeline's `outputs` declaration.
+
+## M8 Guardrails
+
+After all the above, M8 runs the additional assertions:
+
+| Guardrail | Default |
+|---|---|
+| `no_t3_plus_without_explicit_escalation` | enforced |
+| `every_action_has_a_ledger_write` | enforced |
+| `every_external_call_has_token_in_scope` | enforced |
+| `no_face_surface_without_widget_layer_budget` | enforced |
+| `no_vector_reads_on_safety_path` | enforced |
+| `pipeline_action_classes_match_declaration` | enforced |
+| `tests_required_for_skills_marked_critical` | enforced |
+| `confidence_floor_required_for_classifiers` | enforced |
+
+Failures are reported with file:line and a remediation suggestion.
+
+## Output
+
+A `PipelineGraph` is a serialized representation the Engine consumes:
+
+```typescript
+type PipelineGraph = {
+  name: string;
+  version: string;
+  operator: string;
+  graph: { nodes: Node[]; edges: Edge[] };
+  action_classes: Set<string>;
+  capabilities: Set<string>;
+  outputs: OutputTarget[];
+  imports_resolved: ResolvedImport[];   // every import pinned to a hash
+  schema_hash: string;
+  compiler_version: string;
+};
+```
+
+The compiled graph is itself content-addressable; deploying the same YAML through the same compiler version produces a bit-identical graph.
+
+## Continue
+
+- [Examples](/platform/pipelines/examples)
+- [Console](/platform/console/overview)

@@ -1,0 +1,158 @@
+---
+title: "Protocol Quickstart"
+description: "Get the SINT Protocol running locally in under 10 minutes."
+---
+
+# Protocol Quickstart
+
+Get the Protocol running locally and make your first allow/deny/escalate decision in under 10 minutes.
+
+## Prerequisites
+
+- Node.js ≥ 22
+- pnpm ≥ 9
+- (Optional) Docker + Docker Compose for the full stack profile
+
+## Install
+
+```bash
+git clone https://github.com/sint-ai/sint-protocol
+cd sint-protocol
+pnpm install
+pnpm run build
+pnpm run test
+```
+
+All tests should pass. The test suite includes property tests for the five invariants — if those fail, do not proceed.
+
+## Run the Policy Gateway
+
+```bash
+pnpm --filter @sint/gateway-server dev
+```
+
+Gateway will be listening at `http://localhost:3100`. Probe:
+
+```bash
+curl http://localhost:3100/v1/health     # → {"status":"ok"}
+curl http://localhost:3100/v1/ready      # → {"ready":true}
+open http://localhost:3100/v1/docs       # OpenAPI explorer
+```
+
+## Make your first request
+
+Mint a capability token (in production, tokens are issued by Bridge after agent authentication; the dev server exposes a helper for local testing):
+
+```bash
+TOKEN=$(curl -sS -X POST http://localhost:3100/v1/dev/issue-token \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "agent_id": "test-agent-001",
+    "tenant": "demo",
+    "scopes": ["intake.read", "summary.write"],
+    "tier_max": 1,
+    "ttl_seconds": 300
+  }' | jq -r .token)
+```
+
+Submit an action that should pass:
+
+```bash
+curl -sS -X POST http://localhost:3100/v1/decide \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "action_class": "summary.write",
+    "tenant": "demo",
+    "params": { "doc_id": "abc-123" }
+  }'
+# → {"decision":"allow","ledger_id":"0x...","tier":1}
+```
+
+Submit an action that should be denied (out of scope):
+
+```bash
+curl -sS -X POST http://localhost:3100/v1/decide \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "action_class": "payment.send",
+    "tenant": "demo",
+    "params": { "amount": 100 }
+  }'
+# → {"decision":"deny","reason":"scope_not_in_token","ledger_id":"0x..."}
+```
+
+Both decisions are recorded in the Evidence Ledger before any side-effect fires.
+
+## Inspect the ledger
+
+```bash
+curl -sS http://localhost:3100/v1/ledger?tenant=demo&limit=10 | jq
+```
+
+You should see two entries — the `allow` and the `deny` — each with a `prev_hash` and `hash`. The chain is verifiable end-to-end:
+
+```bash
+pnpm --filter @sint/engine ledger:verify --tenant demo
+# → ✓ 2 entries, hash chain intact
+```
+
+## Try attenuation (I-T1)
+
+Attempt to delegate a token with broader scope than its parent — this should fail:
+
+```bash
+curl -sS -X POST http://localhost:3100/v1/tokens/delegate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "scopes": ["intake.read", "summary.write", "payment.send"],
+    "ttl_seconds": 300
+  }'
+# → 400 {"error":"attenuation_violation","detail":"child scopes must be subset of parent"}
+```
+
+Attempt to delegate within scope — this succeeds:
+
+```bash
+curl -sS -X POST http://localhost:3100/v1/tokens/delegate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "scopes": ["intake.read"],
+    "ttl_seconds": 60
+  }'
+# → {"token":"...", "scopes":["intake.read"], "ttl_seconds":60}
+```
+
+## Run the full stack
+
+If you want Postgres + Redis + Console + Avatar Interface:
+
+```bash
+pnpm run stack:interface
+# → Gateway:   http://localhost:3100
+# → Console:   http://localhost:3201
+# → Interface: http://localhost:3202
+```
+
+Other stack profiles:
+
+```bash
+pnpm run stack:dev                      # local dev with hot reload
+pnpm run stack:edge                     # edge-deployable profile
+pnpm run stack:prod-lite                # production-shape, single host
+pnpm run stack:gazebo-validation        # ROS 2 + Gazebo simulation harness
+pnpm run stack:isaac-sim-validation     # NVIDIA Isaac Sim integration
+```
+
+The validation profiles spin up a simulated robot fleet, attach the Protocol, and run a scripted scenario. Use these to test policy changes before deploying against a real actuator.
+
+## Next
+
+- **[Architecture](/protocol/architecture)** — the data path through a request, trust boundaries, package layout
+- **[Layer-by-layer detail](/protocol/layers/bridge)** — what each of the five layers does
+- **[Invariants](/protocol/invariants/overview)** — formal properties the Protocol enforces
+- **[Capability tokens reference](/protocol/reference/capability-tokens)** — token structure, scopes, attenuation rules
+- **[Contributing](/protocol/contributing)** — open a PR

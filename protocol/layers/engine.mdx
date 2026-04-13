@@ -1,0 +1,159 @@
+---
+title: "L3 — Engine"
+description: "Execution runtime. Evidence Ledger. ProofReceipt attestation hooks."
+---
+
+# Engine (Layer 3)
+
+The Engine is where actions actually fire. Every execution is preceded by a ledger commit; every outcome is appended; nothing escapes the audit trail.
+
+## Scope
+
+Engine is responsible for:
+
+- Committing pre-written Decisions from Gate to the Evidence Ledger
+- Executing the Action against the appropriate Bridge adapter
+- Appending outcomes (success, failure, timeout) to the ledger
+- Emitting [ProofReceipt](/protocol/reference/evidence-ledger#proof-receipts) attestations for tier-gated critical actions
+- Maintaining hash-chain integrity across the ledger
+- Surfacing ledger reads to clients (Console, audit consumers, exports)
+
+Engine is **not** responsible for:
+
+- Deciding whether to execute (Gate already decided)
+- Authentication or token issuance (Bridge)
+- Optional metering (Economy)
+
+## The execution path
+
+```
+Decision (allow) arrives from Gate
+    │
+    ▼
+1. Commit Decision to ledger          ← INSERT-only, hash-chained
+    │                                    Failure here = abort, no execution
+    ▼
+2. Execute Action via Bridge adapter  ← Result<Outcome, ExecErr>
+    │
+    ▼
+3. Append Outcome to ledger           ← Linked to Decision by ledger_id
+    │
+    ▼
+4. Optional: emit ProofReceipt        ← For T3+ actions or per-policy
+    │
+    ▼
+5. Optional: emit Economy meter event ← Layer 4, fire-and-forget
+    │
+    ▼
+Outcome returned to caller
+```
+
+## The Evidence Ledger
+
+The ledger is the heart of the Protocol's audit story.
+
+- **Append-only.** Enforced at the database level via INSERT-only triggers on the `ledger_entries` table. Soft-deletes attempted via direct DB access are rejected; the rejection itself is ledgered.
+- **SHA-256 hash-chained.** Each entry's hash includes `prev_hash`, the canonical JSON of the entry's payload, and a Merkle root over its child events. Tampering with any historical entry breaks the chain at every subsequent entry.
+- **Verifiable.** A continuous verification job runs every 10 minutes, comparing the Postgres-derived chain against an independently-maintained Redis index. Any divergence pages on-call.
+- **Exportable.** Per-tenant export to client-controlled storage (S3, GCS, SFTP) on a configurable schedule. Clients can run their own hash-chain verification against the export.
+
+```typescript
+type LedgerEntry = {
+  id: string;                    // 0x-prefixed UUID
+  tenant: string;
+  trace_id: string;
+  prev_hash: string;
+  hash: string;                  // SHA-256 over canonical JSON of this entry + prev_hash
+  ts: string;                    // ISO 8601, millisecond precision
+  kind: LedgerKind;              // "decision" | "outcome" | "approval" | "denial" | ...
+  tier: 0 | 1 | 2 | 3 | 4;
+  agent_id: string;
+  action_class: string;
+  payload: Record<string, unknown>;
+  proof_receipt_id?: string;     // optional
+};
+```
+
+[Full Evidence Ledger reference →](/protocol/reference/evidence-ledger)
+
+## ProofReceipt attestation
+
+For tier-gated critical actions, Engine can emit a `ProofReceipt` to a pluggable attestation hook. The hook attaches verifiable-compute evidence (TEE attestation, ZK proof, signed attestation from a remote enclave, etc.) to the ledger entry.
+
+The Protocol does not prescribe an attestation backend. The interface is:
+
+```typescript
+interface ProofReceiptHook {
+  generate(entry: LedgerEntry): Promise<Result<ProofReceipt, ProofErr>>;
+  verify(receipt: ProofReceipt, entry: LedgerEntry): Promise<Result<true, ProofErr>>;
+}
+```
+
+Reference implementations:
+- `@sint/proofs-noop` — emits a signed timestamp; useful for development
+- `@sint/proofs-aws-nitro` — AWS Nitro Enclave attestation
+- `@sint/proofs-tdx` — Intel TDX attestation
+- (Bring your own.)
+
+## Storage adapters
+
+Per [I-P1](/protocol/invariants/i-p1-persistence), Engine consumes a storage adapter through a clean interface:
+
+```typescript
+interface LedgerStorage {
+  append(entry: NewLedgerEntry): Promise<Result<LedgerEntry, StorageErr>>;
+  get(tenant: string, id: string): Promise<Result<LedgerEntry, StorageErr>>;
+  list(tenant: string, q: LedgerQuery): Promise<Result<LedgerEntry[], StorageErr>>;
+  verifyChain(tenant: string, range?: Range): Promise<Result<VerifyReport, StorageErr>>;
+}
+```
+
+Reference adapters:
+- `@sint/storage-memory` — for tests
+- `@sint/storage-postgres` — production default
+- `@sint/storage-postgres-replicated` — multi-region with logical replication
+
+You can bring your own (e.g. SQLite for embedded scenarios). The interface is the contract; the test suite for `@sint/engine` runs against any adapter that satisfies it.
+
+## Concurrency model
+
+- Engine owns the ledger write order **per tenant**. One logical writer per tenant, optionally backed by a small worker pool with FIFO discipline.
+- Across tenants, Engine scales horizontally without coordination.
+- Read paths (ledger queries from Console, export jobs) are served from read replicas.
+- Pre-write from Gate is idempotent on `decision_id`; retries do not duplicate entries.
+
+## Failure modes
+
+| Condition | Behavior |
+|---|---|
+| Ledger storage unavailable on commit | Refuse to execute. Action returns failure. Decision was already pre-written; outcome is appended as `infra_failure` once storage recovers. |
+| Bridge adapter throws during execution | Caught at the boundary. Outcome appended as `executor_error` with the error class. Caller receives `Result.Err`. |
+| ProofReceipt hook fails | Outcome still committed; receipt slot left empty; alert raised. Per [I-F1](/protocol/invariants/i-f1-fail-modes), proof generation is not on the safety path. |
+| Hash chain divergence detected | Engine refuses new writes for the affected tenant; alerts pager; quarantine procedure activates. |
+| E-stop signal received | All non-terminal executions halt. In-flight executions are appended to ledger as `estop_interrupted`. |
+
+## Performance
+
+| Metric | Value |
+|---|---|
+| Ledger append latency p50 | 2 ms (Postgres, single-region) |
+| Ledger append latency p99 | 8 ms |
+| Verify-chain throughput | ~120,000 entries/sec (warm cache) |
+| Tenant concurrent capacity | 100k+ entries/day per tenant on standard Railway profile |
+
+In production, the [`@sint-protocol`](https://github.com/sint-ai/sint-protocol) workspace runs continuously verified ledgers at 1.24M+ entries with zero hash-chain drift over the most recent 90-day window.
+
+## What Engine does not do
+
+- **Skip the ledger when a flag is set.** No flag exists. Tests use the in-memory adapter; the in-memory adapter still hash-chains.
+- **Re-order ledger entries.** Order is causal and preserved.
+- **Compress historical entries.** Compaction happens at the storage layer (Postgres TOAST / partition pruning); the logical ledger is immutable.
+- **Decide whether to execute.** That's Gate. Engine receives `allow` and proceeds; if it shouldn't have proceeded, that's a Gate bug, not an Engine bug.
+
+## Continue
+
+- [Economy (L4)](/protocol/layers/economy) — optional metering layer
+- [Avatar (L5)](/protocol/layers/avatar) — HITL surface
+- [Evidence Ledger reference](/protocol/reference/evidence-ledger)
+- [I-G3 ledger primacy](/protocol/invariants/i-g3-ledger)
+- [I-P1 interface-first persistence](/protocol/invariants/i-p1-persistence)

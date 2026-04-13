@@ -1,0 +1,90 @@
+---
+title: "Anatomy of an Operator"
+description: "The pipeline every Operator follows — intake, plan, gate, execute, ledger, report."
+---
+
+# Anatomy of an Operator
+
+Every Operator we ship follows the same six-stage pipeline. The stages are uniform; the details per stage are workflow-specific.
+
+```
+┌─────────┐    ┌──────┐    ┌──────┐    ┌─────────┐    ┌────────┐    ┌────────┐
+│ Intake  │ →  │ Plan │ →  │ Gate │ →  │ Execute │ →  │ Ledger │ →  │ Report │
+└─────────┘    └──────┘    └──────┘    └─────────┘    └────────┘    └────────┘
+```
+
+## 1. Intake
+
+How the Operator receives work.
+
+| Source | Example |
+|---|---|
+| Webhook | DocuSign signed; Stripe charge; HubSpot form submission |
+| Scheduled poll | Inbox sweep every 5 min; CRM status check hourly |
+| Voice | Inbound PSTN/SIP call |
+| Event stream | Kafka topic, SQS queue |
+| Manual | Operator-initiated via Console |
+
+Intake translates raw input into a structured `WorkItem` and emits an `intake.received` ledger entry.
+
+## 2. Plan
+
+The agent proposes an action sequence. Plans are directed acyclic graphs of `Action` proposals, not linear chains. Branches and parallel paths are first-class.
+
+The plan itself is not executed. It is a proposal. Each proposed Action will be evaluated by the Gate independently.
+
+The plan is recorded in the ledger as `plan.proposed`. If the plan is later modified by an approver via [Avatar](/protocol/layers/avatar), a `plan.modified` entry chains to the original.
+
+## 3. Gate
+
+Every proposed Action passes through the [Policy Gateway](/protocol/layers/gate). The Gate:
+
+- Verifies the capability token
+- Enforces [I-T1 attenuation](/protocol/invariants/i-t1-attenuation)
+- Evaluates client-defined policies
+- Classifies the Action by [tier (T0–T4)](/protocol/reference/approval-tiers)
+- For T2+: enqueues for approval, returns `escalate`
+- Pre-writes the Decision to the Engine ledger queue per [I-G3](/protocol/invariants/i-g3-ledger)
+
+Returns `allow` / `deny` / `escalate`. The Engine acts on `allow` only.
+
+## 4. Execute
+
+The [Engine](/protocol/layers/engine) commits the Decision to the Evidence Ledger, then dispatches the Action to the appropriate Bridge adapter. The adapter executes against the external system (CRM, calendar, robot, inbox, payment processor, etc.).
+
+Outcomes are appended to the ledger as `outcome.success`, `outcome.failure`, or `outcome.timeout`.
+
+## 5. Ledger
+
+Every decision, outcome, approval, denial, modification, and infra event is in the [Evidence Ledger](/protocol/reference/evidence-ledger). The ledger is append-only, hash-chained, and continuously verified.
+
+By design, an Operator's audit story is "read the ledger." There is no second source of truth; if it isn't ledgered, it didn't happen.
+
+## 6. Report
+
+Outcomes surface through one or more channels:
+
+- [Console](/platform/console/overview) — live runs, ledger view, dashboards
+- [Face](/face/overview) — voice-first updates, approval trays
+- Slack / email / SMS — notifications, weekly summaries
+- Customer system of record — write-backs to CRM, inbox, project management
+
+Report templates are part of the Operator's pipeline definition (see [YAML pipelines](/platform/pipelines/yaml-spec)).
+
+## What every Operator must declare
+
+In its [pipeline YAML](/platform/pipelines/yaml-spec), an Operator declares:
+
+- Action classes it issues (and at what tier)
+- Capability scopes its agents need
+- Approval routes for its T2+ actions
+- Output destinations it writes to
+- The metric(s) it's accountable for
+
+These declarations are read by [M8 Guardrails](/platform/overview#m8-guardrails) before any production deploy. An Operator that issues actions outside its declared classes is rejected.
+
+## Continue
+
+- [Safety envelope](/operators/safety-envelope) — Protocol layer mapping per Operator
+- [Telemetry](/operators/telemetry) — what gets logged and where
+- [Pipelines YAML spec](/platform/pipelines/yaml-spec)

@@ -1,0 +1,85 @@
+---
+title: "Quickstart"
+description: "Pick the path that matches what you're trying to do."
+---
+
+# Quickstart
+
+There's no single quickstart for SINT because there's no single thing to do with it. Pick the path.
+
+## I want to run the Protocol locally
+
+The fastest way to see the safety envelope in action.
+
+```bash
+# Prerequisites: Node.js >= 22, pnpm >= 9
+git clone https://github.com/sint-ai/sint-protocol
+cd sint-protocol
+pnpm install
+pnpm run build
+pnpm run test                  # full workspace test suite
+
+# Start the Policy Gateway
+pnpm --filter @sint/gateway-server dev
+#   → http://localhost:3100/v1/health
+#   → http://localhost:3100/v1/ready
+#   → http://localhost:3100/v1/docs
+
+# Or start the full stack: Gateway + Interface + Postgres + Redis
+pnpm run stack:interface
+#   → http://localhost:3202
+```
+
+Other stack profiles for specific scenarios:
+
+```bash
+pnpm run stack:dev                       # local dev with hot-reload
+pnpm run stack:edge                      # edge-deployable profile
+pnpm run stack:prod-lite                 # production-shape, single host
+pnpm run stack:gazebo-validation         # robotics simulation harness
+pnpm run stack:isaac-sim-validation      # NVIDIA Isaac Sim integration
+```
+
+Continue at [Protocol Quickstart](/protocol/quickstart) for a guided tour.
+
+## I want to build an Operator on the Protocol
+
+Read these in order:
+
+1. [Operators overview](/operators/overview)
+2. [Anatomy of an Operator](/operators/anatomy)
+3. [Safety envelope](/operators/safety-envelope)
+4. [Pipelines YAML spec](/platform/pipelines/yaml-spec)
+5. One concrete example — pick the closest: [Revenue](/operators/revenue), [Documents](/operators/documents), [Voice](/operators/voice), [Onboarding](/operators/onboarding), [CMO](/operators/cmo), [Inbox](/operators/inbox)
+
+## I want to embed Face in my own app
+
+```html
+<script src="https://face.sint.gg/embed.js" async></script>
+<sint-face
+  agent-endpoint="https://your-agent.example.com"
+  voice="alloy"
+  policy-gateway="https://gate.sint.gg"
+></sint-face>
+```
+
+Continue at [Face embed guide](/face/embed).
+
+## I want SINT Labs to build an Operator for my company
+
+You're in the wrong place; you want **[sint.gg/contact](https://sint.gg/contact)**. Two-week fixed-fee Audit, then Build, then Operate. See [sint.gg/agency](https://sint.gg/agency) for engagement and pricing.
+
+## I want to read the research
+
+- **[ROSClaw](/research/rosclaw)** — empirical safety analysis of LLM-controlled physical AI. IROS 2026 submission. arXiv:2603.26997.
+- **[MCP Security Analysis](/research/mcp-security)** — architectural review of the Model Context Protocol. arXiv:2601.17549.
+
+## I'm here from an old SINT link
+
+Welcome. The company pivoted in early 2026. The short version: [/origin](/origin).
+
+## I want to contribute
+
+- **Protocol issues, PRs, discussions:** [github.com/sint-ai/sint-protocol](https://github.com/sint-ai/sint-protocol). Read [`AGENTS.md`](https://github.com/sint-ai/sint-protocol/blob/main/AGENTS.md) and [`CONTRIBUTING.md`](https://github.com/sint-ai/sint-protocol/blob/main/CONTRIBUTING.md) first. The five [invariants](/protocol/invariants/overview) are non-negotiable.
+- **Docs PRs:** the "Suggest edit" link at the bottom of any page on this site.
+- **Research collaboration:** illia@sint.gg.

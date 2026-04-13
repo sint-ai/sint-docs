@@ -1,0 +1,84 @@
+---
+title: "I-T1 — Attenuation only"
+description: "Delegated capability tokens can only reduce the parent's permission set, never escalate."
+---
+
+# I-T1 — Attenuation only
+
+## Statement
+
+For any token T_child delegated from token T_parent, the permission set of T_child is a strict subset of the permission set of T_parent. Delegation is **unidirectional**: child tokens can only shrink, never widen.
+
+Formally, for all token pairs (parent, child) where `child.parent_jti == parent.jti`:
+
+```
+child.scopes ⊆ parent.scopes
+child.tier_max ≤ parent.tier_max
+child.spend_cap_usd ≤ parent.spend_cap_usd  (if set on parent)
+child.physical ⊆ parent.physical
+child.exp ≤ parent.exp
+child.geofence ⊆ parent.geofence  (if set on parent)
+```
+
+## Why
+
+Without attenuation, any compromise of an agent grants the attacker the ability to mint broader tokens. With attenuation, a compromised agent can only delegate downward — a worst case that's no worse than the agent itself.
+
+This closes the failure mode that made the September 2025 Unitree BLE worm tractable: compromised agents continued to operate under stale, valid-seeming credentials with no scope restriction at the protocol level.
+
+## What enforces it
+
+- **`@sint/tokens/attenuate.ts`** — the only function in the codebase authorized to mint a child token. Refuses any request where the child's permission set is not a subset of the parent's.
+- **Gate's pre-check.** Every request is verified against the token's stated scope; mismatches return `deny` with `reason: "attenuation_violation"`.
+- **Property test:** `pnpm run test:invariants:t1` — generates 10,000 randomized parent/child token pairs per CI run, asserts the subset property holds and that no delegation succeeds where it shouldn't.
+
+## What a violation looks like
+
+A violation would mean either:
+
+1. A child token exists with a scope, tier, spend cap, geofence, or expiry exceeding its parent. The Protocol's `attenuate()` cannot produce this; only direct DB manipulation could. The hash-chained ledger would record the discrepancy.
+2. Gate accepts an action whose required scope exceeds the token's scope. Property tests check this exhaustively.
+
+If either is observed, treat as P0: pause the affected tenant, audit the ledger, escalate to the security disclosure path.
+
+## Edge cases
+
+- **Sibling delegation.** Two children of the same parent can have disjoint scope subsets. Both are valid; each is independently attenuated.
+- **Re-attenuation.** A grandchild of the root must still satisfy I-T1 against its immediate parent (the child), and transitively against the root.
+- **Parent expiry.** Children inherit `exp ≤ parent.exp`. If the parent expires, the child is invalid even if its own `exp` is in the future.
+- **Parent revocation.** Revoking a parent revokes all descendants. Implementation: `revoke(parent.jti)` propagates to the revocation index for all descendants found via `parent_jti` chain.
+
+## Property test sketch
+
+```typescript
+import fc from "fast-check";
+import { attenuate, isSubset } from "@sint/tokens";
+
+test("I-T1: attenuation only", () => {
+  fc.assert(
+    fc.property(
+      arbToken(),
+      arbDelegationRequest(),
+      (parent, request) => {
+        const result = attenuate(parent, request);
+        if (result.ok) {
+          const child = result.value;
+          expect(isSubset(child.scopes, parent.scopes)).toBe(true);
+          expect(child.tier_max).toBeLessThanOrEqual(parent.tier_max);
+          expect(child.exp).toBeLessThanOrEqual(parent.exp);
+          // ... other subset checks
+        } else {
+          // Rejection is acceptable; the property only says successful
+          // delegations must satisfy attenuation.
+        }
+      }
+    ),
+    { numRuns: 10_000 }
+  );
+});
+```
+
+## Continue
+
+- [Capability tokens reference](/protocol/reference/capability-tokens)
+- [I-G2 — E-stop universality](/protocol/invariants/i-g2-estop)

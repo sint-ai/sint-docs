@@ -1,0 +1,125 @@
+---
+title: "Policy language"
+description: "Declarative YAML/JSON policies the Gate evaluates per request."
+---
+
+# Policy language
+
+Policies are declarative. The Gate compiles them to a deterministic decision tree at startup. Adding/removing a policy requires a Gate restart or hot-reload (`pnpm --filter @sint/gateway-server reload-policies`); the live policy table is never mutated under load.
+
+## Shape
+
+A policy bundle is an ordered list of rules. The first rule that matches an action determines the decision.
+
+```yaml
+# policies/default.yaml
+rules:
+  - id: read-anything
+    match:
+      action_class: "*.read"
+    effect: allow
+    tier: 0
+
+  - id: doc-summary-with-confidence
+    match:
+      action_class: "doc.summary.write"
+    effect: allow
+    tier: 1
+    constraints:
+      confidence_floor: 0.82
+
+  - id: jurisdictional-flag
+    match:
+      action_class: "doc.summary.write"
+      params:
+        jurisdiction: { in: ["NY", "CA"] }
+    effect: escalate
+    tier: 2
+    route:
+      kind: approval_tray
+      approver: duty-attorney
+
+  - id: payments-always-explicit
+    match:
+      action_class: "payment.send"
+    effect: deny_unless_explicit
+    tier: 4
+    detail: "Payments require explicit per-action token; root token cannot authorize."
+
+  - id: catch-all-default-deny
+    match: { "*": "*" }
+    effect: deny
+    detail: "No matching policy. Default-deny."
+```
+
+## Match conditions
+
+```yaml
+match:
+  action_class: "robot.move"          # exact, or wildcard at segment boundary
+  params:
+    velocity:    { lte: 1.5 }         # numeric comparison
+    target.z:    { eq: 0 }            # nested with dot path
+    jurisdiction: { in: [NY, CA] }    # set membership
+    document_id: { exists: true }     # presence check
+  tenant:        { eq: "acme" }       # scope by tenant
+  agent_class:   { in: [revenue-op, crm-op] }
+```
+
+## Effects
+
+| Effect | Behavior |
+|---|---|
+| `allow` | Permit the action at the declared tier (T0/T1 only) |
+| `escalate` | Enqueue for approval at the declared tier (T2/T3/T4) |
+| `deny` | Refuse the action |
+| `deny_unless_explicit` | Refuse unless the token explicitly carries the action class as a scope (not via wildcard) |
+
+## Constraints
+
+Constraints attach to an `allow` or `escalate` effect and modify the action's execution:
+
+```yaml
+constraints:
+  confidence_floor: 0.82          # action must report confidence ≥ 0.82
+  max_recipients: 5
+  redact_pii: true                # redact PII before LLM prompt
+  spend_check: token.spend_cap_usd  # check against token spend cap
+  ttl_seconds: 600                # constrain token lifetime for delegated children
+```
+
+Constraint enforcement is the responsibility of the Bridge adapter for the relevant action class. The policy declares the constraint; the adapter enforces it. Adapters that fail to enforce a declared constraint produce a `constraint_unenforced` ledger entry and refuse the action.
+
+## Hot-reload
+
+```bash
+# Stage a new bundle
+cp policies/new.yaml policies/staged.yaml
+
+# Hot-reload (Gate validates, then atomically swaps)
+pnpm --filter @sint/gateway-server reload-policies --tenant acme --bundle policies/staged.yaml
+
+# On validation failure: bundle is rejected, current bundle remains active
+# On validation success: ledgered as policy_loaded; new requests use new bundle
+```
+
+In-flight requests use the bundle they started with.
+
+## Validation
+
+`@sint/policy-dsl` ships a validator. Invalid bundles are rejected at load.
+
+```bash
+pnpm --filter @sint/policy-dsl validate policies/default.yaml
+```
+
+Validation checks: rule IDs unique, `match` syntactically valid, `tier` matches `effect` (e.g. you cannot `allow` at tier 2), `route` references known approver, no rule strictly shadowed by an earlier rule (warning, not error).
+
+## Defaults
+
+The reference bundle (`@sint/policy-defaults`) classifies common action classes. You should treat it as a starting point and override what you need; do not run it untouched in production.
+
+## Continue
+
+- [Gate (L2)](/protocol/layers/gate)
+- [Approval tiers](/protocol/reference/approval-tiers)

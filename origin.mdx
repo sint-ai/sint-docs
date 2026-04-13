@@ -1,0 +1,72 @@
+---
+title: "How we got here"
+description: "The short, honest version of what SINT used to be and what it is now."
+---
+
+# How we got here
+
+A short, honest version.
+
+## 2024 — The Web3 era
+
+SINT began in 2024 as an agent framework exploring Web3-adjacent use cases: autonomous agents for trading, social engagement, and DeFi automation, with a tokenized economy as the participation layer. The work shipped a public docs site, a working agent runtime, partnerships across the decentralized AI space (Ice Open Network, Raiinmaker, Fetch.ai integration), and a user base.
+
+That work is part of the public record. We're not erasing it. We're telling you what changed.
+
+## 2025 — Watching where the real problem was
+
+Through 2025 we paid attention to where customers, robotics teams, and infrastructure engineers actually got stuck. It wasn't tokenomics. It wasn't an agent marketplace. It wasn't a decentralized compute layer.
+
+It was that AI agents had started touching real-world systems — robots, money, machines, inboxes — and **nobody had built the safety envelope.**
+
+- **MCP** (Model Context Protocol) had ten documented breaches in eight months, including a CVSS 9.6 command injection affecting an MCP client package with 437,000 downloads ([arXiv:2601.17549](https://arxiv.org/abs/2601.17549)).
+- **SROS2** — the security extensions for ROS 2 — were shown to be formally incomplete. The spec required invariants the implementation didn't enforce.
+- **The Unitree BLE worm** (September 2025) demonstrated wormable command injection across robot fleets running LLM-influenced firmware. Hardcoded crypto keys, no per-agent capability model, no real-time revocation.
+- Every serious robotics team, every enterprise deploying LLM-driven ops, every lab publishing on autonomous systems hit the same wall.
+
+The gap was real and widening. Capability tokens, attenuation rules, append-only audit, tier-gated approvals, E-stop universality — none of it was standardized. Every team built it from scratch, badly, in private.
+
+## 2026 — The pivot
+
+We wound down the Web3-agent work, reorganized under SINT Labs (PSHKV Inc., Los Angeles), and focused the company on two products:
+
+1. **[SINT Protocol](/protocol/overview)** — an open-source 5-layer governance standard for AI agents acting in the physical and financial world. Apache 2.0. Research-backed: [ROSClaw](/research/rosclaw) (IROS 2026), [MCP Security Analysis](/research/mcp-security).
+
+2. **[SINT Operators](/operators/overview)** — custom autonomous workflow systems we build and run for US mid-market services firms ($3M–$20M revenue, 15–80 employees). Every Operator runs under the Protocol.
+
+Two supporting products make those shippable:
+
+3. **[SINT Operator Platform](/platform/overview)** — the runtime: Console, Commons, Memory, Cron, Canon, YAML Pipelines.
+4. **[SINT Face](/face/overview)** — the voice-first 3D agent interface used as the human surface for Operators.
+
+## What is no longer part of SINT Labs
+
+<Warning>
+**SINT Labs does not issue, sell, or plan to issue any cryptocurrency or token.**
+
+If you have been contacted about buying or trading a "$SINT" token, an "airdrop," or any related instrument — it is fraudulent and not affiliated with us. Report to security@sint.gg.
+</Warning>
+
+The following are **no longer active** and do not represent the current company:
+
+- The "$SINT" token, agent marketplace, and tokenized economy
+- The "evolve toward autonomous superintelligence" framing
+- The Web3-native agent runtime, Solana / Ethereum / Cosmos integrations, NFT minting, MetaMask/Trust Wallet integrations
+- The earlier ASI Bridge integration (Fetch.ai uAgents, ASI-1 Mini LLM, Agentverse marketplace)
+- The earlier MCP Marketplace and "Modular Cloud Programs" framing
+- Partnership announcements from the earlier era (Ice Open Network, Raiinmaker/TRAIIN, etc.) remain matters of public record but are not part of the current product or roadmap
+
+The earlier docs site, whitepaper, and brand assets are archived. Anything that previously redirected to those resources now redirects here.
+
+## What stayed
+
+One conviction: **agents should act on behalf of people**. We still believe that. We are very specific now about the safety envelope inside which they act, and we open-sourced it so the rest of the field can stop reinventing it.
+
+## Where to go next
+
+- **Want to build with the Protocol?** [Protocol overview](/protocol/overview)
+- **Want to see what an Operator does?** [Operators overview](/operators/overview)
+- **Want the company story for investors / press?** [sint.gg/founder](https://sint.gg/founder)
+- **Want to read the research?** [ROSClaw](/research/rosclaw) · [MCP Security Analysis](/research/mcp-security)
+
+If you arrived here from an old link or thread — welcome. The current company is at **[sint.gg](https://sint.gg)**.

@@ -1,0 +1,46 @@
+name: Deploy docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Install Mintlify
+        run: npm i -g mintlify
+      - name: Validate mint.json
+        run: mintlify broken-links
+      - name: Lint MDX
+        run: |
+          # Fail CI on any MDX file missing required frontmatter
+          fail=0
+          for f in $(find . -name "*.mdx" -not -path "./node_modules/*"); do
+            if ! head -5 "$f" | grep -q "^title:"; then
+              echo "::error file=$f::Missing frontmatter 'title:'"
+              fail=1
+            fi
+          done
+          exit $fail
+
+  verify-redirects:
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for Mintlify deploy
+        run: sleep 120   # Mintlify auto-deploys on push; give it ~2min
+      - name: Verify redirects
+        run: ./scripts/verify-redirects.sh
+      - name: Verify pages
+        env:
+          DOCS_HOST: https://docs.sint.gg
+        run: |
+          sudo apt-get install -y jq
+          ./scripts/verify-pages.sh

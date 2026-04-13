@@ -1,0 +1,68 @@
+---
+title: "Commons"
+description: "The shared library — skills, components, policies, templates that any Operator can pull from."
+---
+
+# Commons
+
+Commons is the SOP shared library. Anything that's reusable across multiple Operators lives here.
+
+The principle: every Operator we build or that anyone builds on the Platform should be able to reach for vetted building blocks instead of reinventing them. Commons is what makes Operators composable rather than bespoke.
+
+## What lives in Commons
+
+| Type | Examples |
+|---|---|
+| [Skills](/platform/commons/skills) | LLM-callable functions packaged with prompts, tests, and capability requirements |
+| [Components](/platform/commons/components) | Reusable [Pipeline](/platform/pipelines/overview) sub-graphs (e.g. "PII redactor", "OCR stage", "approval router") |
+| Policies | Reusable [policy bundles](/protocol/reference/policy-language) (e.g. "default mid-market services", "HIPAA-tightened", "financial services") |
+| Templates | Reusable [Canon](/platform/canon/overview) templates (welcome packets, weekly reports, contract summaries) |
+| Adapters | Reusable [Bridge](/protocol/layers/bridge) adapters for common systems (Slack, HubSpot, Asana, etc.) |
+| Widget definitions | Reusable [Face Widget Layer](/face/widget-layer) component definitions |
+
+## Versioning
+
+Every Commons artifact is semver-versioned. Pipelines pin specific versions; upgrades are explicit, not surprise.
+
+```yaml
+# pipelines/document-intelligence.yaml
+imports:
+  - skill: "@commons/pii-redactor@^2.0.0"
+  - component: "@commons/ocr-stage@^1.3.0"
+  - policy: "@commons/policy-defaults-services@^4.0.0"
+  - template: "@commons/contract-summary@^1.1.0"
+```
+
+## Discovery
+
+Browse Commons in Console under `Platform → Commons`. Each artifact shows: description, current version, version history, capability requirements, tier classifications, test coverage, who maintains it.
+
+Search by name, tag, or capability requirement (e.g. "anything that needs `crm.write`").
+
+## Contributing
+
+Commons is maintained per-tenant by the tenant's engineers (and by SINT Labs on behalf of Agency clients). To add an artifact:
+
+1. Open a PR against the tenant's Commons repo
+2. Include tests and a `manifest.yaml` declaring the artifact's interface and capability requirements
+3. CI runs the artifact's test suite plus M8 Guardrails
+4. Maintainer review
+5. Tag a semver release; the new version is available to Pipelines that pin it
+
+## Sharing across tenants
+
+By default, a tenant's Commons is private. SINT Labs maintains a public Commons (`@commons/*` namespace) shipped with SOP — everything in this docs section under "Commons" refers to the public namespace.
+
+If you build something useful and want to upstream, open a PR against [`github.com/sint-ai/commons`](https://github.com/sint-ai/commons) (public Commons source).
+
+## What Commons is not
+
+- **Not a marketplace.** No purchases, no listings, no reputation scoring. Commons is a library, not a marketplace.
+- **Not a registry of agents.** Commons artifacts are sub-graph parts; whole Operators are owned per tenant.
+- **Not a way to share data across tenants.** Code yes, data no.
+
+## Continue
+
+- [Commons components](/platform/commons/components)
+- [Commons skills](/platform/commons/skills)
+- [Pipelines](/platform/pipelines/overview)

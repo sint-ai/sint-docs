@@ -1,0 +1,86 @@
+---
+title: "I-P1 — Interface-first persistence"
+description: "Storage adapters implement clean interfaces. The test harness runs against any conforming adapter."
+---
+
+# I-P1 — Interface-first persistence
+
+## Statement
+
+All persistent state in the Protocol is accessed through a small set of named interfaces. Concrete adapters implement these interfaces; the rest of the Protocol depends only on the interfaces.
+
+The test harness runs against any conforming adapter. An in-memory adapter is suitable for tests; a Postgres+Redis adapter is suitable for production. Swapping is a configuration change, not a code change.
+
+## Why
+
+Three reasons:
+
+1. **Tests run fast.** The full property test suite runs in under a minute against `@sint/storage-memory`. No Postgres container per test.
+2. **Adoption isn't blocked by infrastructure choice.** Operators integrating the Protocol can bring their own database. The Protocol does not impose Postgres, Redis, or any specific vendor.
+3. **The interface is the contract.** Documenting "what the storage layer must guarantee" is concrete: it's the interface signature plus the conformance test suite.
+
+## The interfaces
+
+```typescript
+interface LedgerStorage {
+  append(entry: NewLedgerEntry): Promise<Result<LedgerEntry, StorageErr>>;
+  get(tenant: string, id: string): Promise<Result<LedgerEntry, StorageErr>>;
+  list(tenant: string, q: LedgerQuery): Promise<Result<LedgerEntry[], StorageErr>>;
+  verifyChain(tenant: string, range?: Range): Promise<Result<VerifyReport, StorageErr>>;
+}
+
+interface TokenStorage {
+  put(token: CapabilityToken): Promise<Result<void, StorageErr>>;
+  getActive(jti: string): Promise<Result<CapabilityToken | null, StorageErr>>;
+  revoke(jti: string, cascade: boolean): Promise<Result<RevokeReport, StorageErr>>;
+  isRevoked(jti: string): Promise<Result<boolean, StorageErr>>;
+}
+
+interface PolicyStorage {
+  load(tenant: string): Promise<Result<PolicyBundle, StorageErr>>;
+  put(tenant: string, bundle: PolicyBundle): Promise<Result<void, StorageErr>>;
+}
+
+interface ApprovalStorage {
+  enqueue(approval: Approval): Promise<Result<void, StorageErr>>;
+  list(filter: ApprovalFilter): Promise<Result<Approval[], StorageErr>>;
+  resolve(id: string, response: ApprovalResponse): Promise<Result<void, StorageErr>>;
+}
+```
+
+## Reference adapters
+
+| Adapter | Use case | Status |
+|---|---|---|
+| `@sint/storage-memory` | Tests, ephemeral local dev | Stable |
+| `@sint/storage-postgres` | Production default (single region) | Stable |
+| `@sint/storage-postgres-replicated` | Multi-region with logical replication | Stable |
+| `@sint/storage-sqlite` | Embedded scenarios | Beta |
+
+You can implement your own. The conformance suite is `@sint/storage-conformance`; if it passes, your adapter is supported.
+
+```bash
+pnpm --filter @sint/storage-conformance test --adapter ./your-adapter
+```
+
+## What enforces it
+
+- **Package boundaries.** `@sint/engine`, `@sint/gateway-server`, etc. depend on the storage interface package, not on any adapter directly. Adapters are wired at startup via the runtime config.
+- **Conformance test suite.** `@sint/storage-conformance` exercises every interface method with hundreds of cases including concurrent writes, hash chain integrity, rollback semantics, and error paths.
+- **CI matrix.** The full Protocol test suite runs against the in-memory adapter every commit and against Postgres on nightly.
+
+## What this enables
+
+- **Vendor-independence.** Operators can run on any storage substrate that has a conforming adapter.
+- **Migration without code change.** Move from Postgres to Postgres-replicated by changing the runtime config.
+- **Embedded scenarios.** Robots running on edge hardware can use SQLite instead of standing up Postgres.
+
+## What this does not promise
+
+- **Cross-adapter consistency.** If you split your tenant across two adapters, you get two ledgers. The Protocol does not federate them.
+- **Adapter performance parity.** The in-memory adapter is faster than Postgres. The Postgres-replicated adapter is slower than single-region Postgres. Pick what fits.
+
+## Continue
+
+- [Engine (L3)](/protocol/layers/engine)
+- [Evidence Ledger reference](/protocol/reference/evidence-ledger)

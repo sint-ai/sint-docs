@@ -1,0 +1,100 @@
+---
+title: "SINT Protocol overview"
+description: "A 5-layer open-source governance standard for AI agents acting in the physical and financial world. Apache 2.0."
+---
+
+# SINT Protocol
+
+**Open-source governance for AI agents acting in the physical and financial world.**
+
+- License: **Apache 2.0**
+- Source: **[github.com/sint-ai/sint-protocol](https://github.com/sint-ai/sint-protocol)**
+- Current version: see [Changelog](/changelog)
+- Research: [ROSClaw](/research/rosclaw) (IROS 2026), [MCP Security Analysis](/research/mcp-security)
+
+## Why it exists
+
+AI agents now control robots, write code, move money, and operate machinery. There is no standard safety layer between *"the LLM decided to do X"* and *"X happened in the world."*
+
+- **MCP** — ten documented breaches in eight months, including a CVSS 9.6 command injection affecting an MCP client with 437,000 downloads ([arXiv:2601.17549](https://arxiv.org/abs/2601.17549)).
+- **SROS2** — security extensions are formally incomplete; the spec requires invariants the implementation does not enforce.
+- **Unitree BLE worm** (Sept 2025) — wormable command injection across robot fleets running LLM-influenced firmware. Hardcoded crypto keys, no per-agent capability model, no real-time revocation.
+- **Microsoft AGT** — targets digital/software agents. SINT targets robots, drones, actuators, and any system where actions are irreversible and have real-world consequences.
+
+The Protocol is what those gaps look like, addressed.
+
+## The five layers
+
+```
+        ┌─────────────────────────────────────────┐
+        │             SINT Avatar                 │   L5: human-in-the-loop surface
+        ├─────────────────────────────────────────┤
+        │             SINT Economy                │   L4: optional metering / settlement
+        ├─────────────────────────────────────────┤
+        │              SINT Engine                │   L3: execution + Evidence Ledger
+        ├─────────────────────────────────────────┤
+        │               SINT Gate                 │   L2: policy gateway, allow/deny/escalate
+        ├─────────────────────────────────────────┤
+        │              SINT Bridge                │   L1: agent ↔ actuator translation
+        └─────────────────────────────────────────┘
+```
+
+| Layer | Reference impl | Status | Detail |
+|---|---|---|---|
+| 1 — [Bridge](/protocol/layers/bridge) | `@sint/bridge` | Stable | Capability token issuance |
+| 2 — [Gate](/protocol/layers/gate) | `@sint/gateway-server` | Stable | Policy enforcement |
+| 3 — [Engine](/protocol/layers/engine) | `@sint/engine` | Stable | Execution + Evidence Ledger |
+| 4 — [Economy](/protocol/layers/economy) | `@sint/economy-api` | API only | Optional metering |
+| 5 — [Avatar](/protocol/layers/avatar) | `@sint/avatar` | Beta | Embodied HITL |
+
+Layers 1–3 are the safety core. Layer 4 (Economy) is **optional** — the Protocol is fully usable without it. Layer 5 (Avatar) is one of several supported HITL surfaces; [Face](/face/overview) is our canonical implementation.
+
+## The five invariants
+
+Each is a formal property the Protocol enforces, property-tested in CI on every commit.
+
+| Code | Invariant | Detail |
+|---|---|---|
+| **[I-T1](/protocol/invariants/i-t1-attenuation)** | Attenuation only | Delegated tokens can only reduce permissions, never escalate |
+| **[I-G2](/protocol/invariants/i-g2-estop)** | E-stop universality | Hardware E-stop bypasses all token checks across all non-terminal states |
+| **[I-G3](/protocol/invariants/i-g3-ledger)** | Ledger primacy | Every decision is written to the Evidence Ledger before any action fires |
+| **[I-F1](/protocol/invariants/i-f1-fail-modes)** | Fail-open on infra, fail-closed on safety | Economy/rate-limit infra failures do not block the safety path; safety envelope violations always block action |
+| **[I-P1](/protocol/invariants/i-p1-persistence)** | Interface-first persistence | Storage adapters implement clean interfaces; in-memory swaps for Postgres/Redis without code changes |
+
+[Read the full invariants reference →](/protocol/invariants/overview)
+
+## Core primitives
+
+- **[Capability tokens](/protocol/reference/capability-tokens)** — per-agent, per-session, real-time revocable. Encode physical/financial safety constraints (velocity, force, geofence, rate, spend cap, TTL) directly in the token body, not in external config.
+- **[Evidence Ledger](/protocol/reference/evidence-ledger)** — append-only SHA-256 hash-chained log. Every decision written before any action fires. INSERT-only at the database level. Optional [ProofReceipt](/protocol/reference/evidence-ledger#proof-receipts) hooks for verifiable compute attestation on critical actions.
+- **[Approval tiers (T0–T4)](/protocol/reference/approval-tiers)** — actions above the client-defined risk threshold escalate for human approval before execution.
+- **[Policy language](/protocol/reference/policy-language)** — declarative policies the Gate evaluates per request.
+
+## Engineering principles
+
+- **`Result<T, E>` over exceptions.** All fallible operations return discriminated unions. The safety boundary never throws.
+- **Attenuation only.** Token delegation is unidirectional — a child token can only shrink the constraint set of its parent.
+- **Append-only audit.** The Evidence Ledger is INSERT-only at the database trigger level. Soft-deletes attempted via direct DB access are rejected.
+- **Physical safety in the token.** Velocity, force, and geofence constraints live in the capability token, not in external config. Closes the class of "config drift" failures observed in SROS2 deployments.
+- **Interface-first persistence.** Storage adapters implement clean interfaces; the in-memory adapter is suitable for tests, the Postgres+Redis adapter for production.
+- **Fail-open on infrastructure.** Economy/rate-limit infrastructure failures do not block the safety path. Safety envelope violations always block action.
+- **E-stop universality.** The hardware E-stop bypasses all token checks. Unconditional across all non-terminal DFA states.
+
+## What it is not
+
+- Not a Model Context Protocol (MCP) implementation. Complementary, not equivalent.
+- Not an agent framework. The Protocol governs agents; it doesn't define how agents reason.
+- Not a cryptocurrency. Layer 4 (Economy) is an optional metering interface; clients choose their own settlement rail or skip the layer entirely.
+- Not specific to robotics. Any LLM-controlled actuator or financial action benefits.
+- Not bound to a specific LLM provider. Backend-agnostic by design (and ROSClaw measures the consequences of pretending otherwise).
+
+## How to use this section
+
+- **First time?** [Quickstart](/protocol/quickstart).
+- **Designing an integration?** [Architecture deep dive](/protocol/architecture), then the [layer-by-layer pages](/protocol/layers/bridge).
+- **Implementing a contributor?** Read all five [invariants](/protocol/invariants/overview), then [Contributing](/protocol/contributing).
+- **Auditing for security?** [Security policy](/protocol/security), [threat model](/protocol/security#threat-model), and the [Evidence Ledger reference](/protocol/reference/evidence-ledger).
+
+## A note on tokens
+
+SINT Labs does not issue, sell, or plan to issue a cryptocurrency or token. Layer 4 (Economy) is an optional interface; the Protocol is fully usable without it. Full pivot context: [/origin](/origin).

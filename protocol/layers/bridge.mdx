@@ -1,0 +1,167 @@
+---
+title: "L1 — Bridge"
+description: "Agent ↔ actuator translation. Capability token issuance and inspection."
+---
+
+# Bridge (Layer 1)
+
+The Bridge is the boundary between agent intent and Protocol-shaped actions. It does two things: **translate** intent into structured Actions, and **issue** the capability tokens that govern those Actions.
+
+## Scope
+
+Bridge is responsible for:
+
+- Translating agent intent into a structured `Action` object the rest of the Protocol can reason about
+- Issuing capability tokens after an agent authenticates
+- Inspecting incoming tokens before forwarding to the Gate
+- Interfacing with actuator-side adapters (HTTP API, ROS 2 topic, message queue, etc.)
+
+Bridge is **not** responsible for:
+
+- Policy decisions (that's [Gate](/protocol/layers/gate))
+- Execution (that's [Engine](/protocol/layers/engine))
+- Auditing (that's the Engine's [Evidence Ledger](/protocol/reference/evidence-ledger))
+- Agent reasoning (the Bridge treats the agent as untrusted, by design)
+
+## Key types
+
+```typescript
+type Action = {
+  action_class: string;        // e.g. "robot.move", "payment.send", "doc.summarize"
+  tenant: string;
+  agent_id: string;
+  params: Record<string, unknown>;
+  physical_constraints?: PhysicalConstraints;  // populated for actuator actions
+  trace_id: string;
+};
+
+type CapabilityToken = {
+  jti: string;                 // unique token ID
+  agent_id: string;
+  tenant: string;
+  scopes: string[];            // action_class patterns: "robot.*", "doc.summarize"
+  tier_max: 0 | 1 | 2 | 3 | 4;
+  physical: PhysicalConstraints | null;
+  rate: { per_minute: number; per_hour: number } | null;
+  spend_cap_usd: number | null;
+  geofence_polygon: GeoJSON | null;
+  iat: number;
+  exp: number;
+  parent_jti: string | null;   // null for root tokens
+};
+```
+
+`PhysicalConstraints`:
+
+```typescript
+type PhysicalConstraints = {
+  max_velocity_mps?: number;
+  max_force_n?: number;
+  max_payload_kg?: number;
+  geofence?: GeoJSON;
+  workspace_id?: string;
+};
+```
+
+## Issuing tokens
+
+Tokens are issued after agent authentication. The issuance flow:
+
+```
+Agent authenticates → Bridge verifies → Bridge issues root token
+                                         (scopes ≤ agent's max permissions)
+```
+
+In the reference implementation:
+
+```typescript
+import { issueToken } from "@sint/bridge";
+
+const result = await issueToken({
+  agent_id: "fleet-agent-007",
+  tenant: "acme-logistics",
+  requested_scopes: ["robot.move", "robot.report"],
+  tier_max: 1,
+  ttl_seconds: 3600,
+  physical: {
+    max_velocity_mps: 1.5,
+    geofence: warehouseFloorPolygon,
+  },
+});
+
+if (result.ok) {
+  const token = result.value;
+  // Attach token to agent's Bridge session
+} else {
+  // result.err is one of: "scope_exceeds_agent_max", "physical_invalid", "tenant_unknown"
+}
+```
+
+Note: Bridge **never throws**. All fallible operations return `Result<T, E>`.
+
+## Translating agent intent
+
+The Bridge maps a free-form agent intent into a structured `Action`:
+
+```typescript
+import { translate } from "@sint/bridge";
+
+const action = translate({
+  agent_intent: {
+    type: "move_to",
+    target: { x: 12.4, y: 8.2, z: 0 },
+    speed: 1.2,
+  },
+  context: { current_token: token, trace_id: traceId },
+});
+
+// → Action { action_class: "robot.move", params: { ... }, physical_constraints: { ... } }
+```
+
+Translation is integration-specific. The reference `@sint/bridge` ships translators for HTTP/REST actuators, ROS 2 topics, and a small set of common SaaS APIs (Slack, Asana, HubSpot). Custom translators implement a single interface.
+
+## Adapter interface
+
+To add support for a new actuator class, implement the `BridgeAdapter` interface:
+
+```typescript
+interface BridgeAdapter<TIntent, TParams> {
+  readonly actionClass: string;
+
+  translate(intent: TIntent, ctx: TranslateContext): Result<TParams, AdapterErr>;
+
+  prepare(action: Action, token: CapabilityToken): Result<PreparedAction, AdapterErr>;
+
+  // Note: `execute` lives on Engine, not Bridge. The adapter only declares
+  // *how* to prepare; the Engine decides *whether* and *when*.
+}
+```
+
+See [`packages/bridge/src/adapters/`](https://github.com/sint-ai/sint-protocol/tree/main/packages/bridge/src/adapters) for reference adapters.
+
+## Token inspection
+
+Incoming tokens (from a client agent or a delegated child) are inspected by Bridge before being forwarded to Gate:
+
+```typescript
+import { inspectToken } from "@sint/bridge";
+
+const inspection = inspectToken(rawJwt);
+
+// inspection.ok === true if signature, expiry, revocation, and structural checks pass
+// inspection.err can be: "signature_invalid", "expired", "revoked", "structural_invalid"
+```
+
+Revocation status is cached locally with TTL ≤ 1s and refreshed via the [revocation pub/sub](/protocol/reference/capability-tokens#revocation).
+
+## What Bridge does not do
+
+- **Translate intent into a "best guess" when the agent's request is ambiguous.** The Bridge fails closed: ambiguous intents return `Result.Err("intent_ambiguous")` and the Gate never sees them.
+- **Bypass token checks "in dev mode."** No flags exist for this. Tests use scoped dev tokens, not bypassed tokens.
+- **Forward an action without inspecting its token.** Every action sent to Gate carries a fresh inspection result.
+
+## Continue
+
+- [Gate (L2)](/protocol/layers/gate) — what happens after Bridge hands the action off
+- [Capability tokens reference](/protocol/reference/capability-tokens)
+- [I-T1: Attenuation only](/protocol/invariants/i-t1-attenuation)

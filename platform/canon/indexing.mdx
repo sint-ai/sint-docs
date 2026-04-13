@@ -1,0 +1,75 @@
+---
+title: "Canon indexing"
+description: "How the Canon indexer produces a content-addressed manifest and what that buys you."
+---
+
+# Canon indexing
+
+The Canon indexer is a deterministic build step that produces a content-addressed manifest of a Canon repo at a specific Git commit.
+
+## What it produces
+
+```
+.canon-index/
+  manifest.json              top-level manifest with every document's hash
+  by-canon-id/
+    marketing.positioning-brief.md     symlinked alias by canon_id
+  vector/                    optional vector index (off the safety path)
+    embeddings.bin
+    metadata.json
+```
+
+`manifest.json`:
+
+```json
+{
+  "canon_version": "0.4",
+  "indexed_at": "2026-04-13T18:00:00Z",
+  "git_commit": "a3f2c4...",
+  "documents": [
+    {
+      "path": "marketing/positioning-brief.md",
+      "canon_id": "marketing.positioning-brief",
+      "canon_version": 3,
+      "content_hash": "sha256:..."
+    },
+    ...
+  ],
+  "manifest_hash": "sha256:..."
+}
+```
+
+`manifest_hash` is the hash of the canonical JSON of `documents` plus `git_commit`. Including this hash in a ledger entry binds the Operator's reads to a specific reproducible state of the Canon repo.
+
+## When it runs
+
+- On every commit to a Canon repo (CI)
+- On manual rebuild via `canon index <repo>`
+- On Pipeline deploy if the Canon repo's commit doesn't have an index yet
+
+## Vector index
+
+Optional. Built only if the manifest declares `vector_allowed`. Vector search is available to Pipelines for exploratory reads but is **never used on the safety path** — Pipelines that try to use vector reads in a Gate-evaluated step are rejected by [M8 Guardrails](/platform/overview#m8-guardrails).
+
+## Verifying a Canon read
+
+```bash
+# Verify a Canon read against the indexed manifest
+canon verify-read \
+  --commit a3f2c4 \
+  --path marketing/positioning-brief.md \
+  --content-hash sha256:...
+# → ✓ verified
+```
+
+This is what an auditor runs to confirm an Operator's [ledgered](/protocol/reference/evidence-ledger) Canon read corresponds to the actual content at that commit.
+
+## Storage
+
+The index lives alongside the Canon repo in `.canon-index/`. It's gitignored by default; CI rebuilds on every commit. For very large Canon repos, the index can be stored separately (S3, etc.); the manifest hash is what Pipelines pin against, not the index location.
+
+## Continue
+
+- [Canon format](/platform/canon/format)
+- [Memory + Canon integration](/platform/memory/canon-integration)
+- [Open-source repo](https://github.com/sint-ai/canon)

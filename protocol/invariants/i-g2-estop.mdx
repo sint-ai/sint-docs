@@ -1,0 +1,62 @@
+---
+title: "I-G2 — E-stop universality"
+description: "The hardware E-stop bypasses all token checks across all non-terminal DFA states. Unconditional."
+---
+
+# I-G2 — E-stop universality
+
+## Statement
+
+For all non-terminal states S in the Operator's execution graph, the E-stop signal halts execution unconditionally — independent of token validity, policy state, infrastructure availability, or in-flight approvals.
+
+E-stop **does not check tokens.** E-stop **does not require approval.** E-stop is the one operation whose authority comes from outside the Protocol.
+
+## Why
+
+Every other guarantee in the Protocol depends on the agent, the Gate, or the storage layer behaving correctly. The E-stop is the guarantee that holds when those have already failed.
+
+If the safety envelope has been compromised — bug, attack, model drift, infrastructure outage — the operator needs a single unambiguous mechanism to halt the system. E-stop is that mechanism.
+
+## Scope
+
+E-stop fires at three levels:
+
+1. **Tenant-wide.** Halts all in-flight executions for a tenant, invalidates all live tokens, refuses new requests until cleared.
+2. **Workspace-wide.** Halts executions touching a specific physical or logical workspace (e.g. a robot cell, a billing namespace).
+3. **Single-agent.** Halts a specific agent's executions.
+
+The first is mandatory per [I-G2](/protocol/invariants/i-g2-estop). The latter two are operational refinements built on top.
+
+## What enforces it
+
+- **`@sint/engine/estop.ts`** — the E-stop subsystem owns its own kill paths and does not consult token state.
+- **Hardware E-stop hooks** — for physical-actuator deployments, the `BridgeAdapter` interface requires an `onEstop()` method that severs the actuator connection at the lowest layer available (e.g. cuts motor power, not just sends a stop command).
+- **Property test:** `pnpm run test:invariants:g2` — generates 2,000 randomized Operator states, injects E-stop at random points, asserts no further side-effects fire for the affected scope.
+
+## What a violation looks like
+
+A violation would mean an action proceeded after E-stop fired for its scope. Property tests cover the in-software case exhaustively. The hardware case requires deployment validation; the Protocol's `gazebo-validation` and `isaac-sim-validation` stack profiles include scripted E-stop scenarios.
+
+If a violation is observed, treat as P0. The hardware E-stop must be the highest-authority signal in the system.
+
+## Recovery
+
+E-stop is sticky. Clearing it requires:
+
+1. A human with `tenant.estop.clear` capability (T4 action) issues a `clear` command via [Console](/platform/console/overview).
+2. Engine confirms ledger integrity, runs adapter health checks, and reports.
+3. The human reviews the report and confirms the clear.
+4. New tokens may now be issued; existing tokens were invalidated and must be reissued.
+
+This is intentionally slow. E-stop is not a flow-control mechanism; it's a "stop everything until a human looks at it" mechanism.
+
+## Three things E-stop is not
+
+- **Pause.** Pause is a separate mechanism (drain in-flight, refuse new) that lives in the Operator runtime, not the Protocol. Pause is reversible without ledger review.
+- **Throttle.** Throttle is a rate-limit mechanism on Gate, not E-stop.
+- **A normal operating mode.** E-stop usage is an incident. Each fire produces a ledger entry, an alert, and an incident review.
+
+## Continue
+
+- [I-G3 — Ledger primacy](/protocol/invariants/i-g3-ledger)
+- [Gate (L2)](/protocol/layers/gate)
