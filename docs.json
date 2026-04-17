@@ -5,11 +5,7 @@
   "colors": {
     "primary": "#00D9A3",
     "light": "#00D9A3",
-    "dark": "#00A37A",
-    "background": {
-      "dark": "#0A0908",
-      "light": "#FAFAF7"
-    }
+    "dark": "#00A37A"
   },
   "favicon": "/favicon.svg",
   "logo": {
@@ -372,5 +368,11 @@
       "destination": "/products/operators",
       "permanent": true
     }
-  ]
+  ],
+  "background": {
+    "color": {
+      "dark": "#0A0908",
+      "light": "#FAFAF7"
+    }
+  }
 }
