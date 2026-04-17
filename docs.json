@@ -13,91 +13,82 @@
     "dark": "/logo/sint-logo-light.svg"
   },
   "navigation": {
-    "groups": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "introduction",
-          "quickstart",
-          "architecture",
-          "facts"
-        ]
-      },
-      {
-        "group": "Protocol",
-        "pages": [
-          "protocol/overview",
-          "protocol/whitepaper",
-          "protocol/spec",
-          "protocol/tiers",
-          "protocol/invariants",
-          "protocol/csml",
-          "protocol/bridges",
-          "protocol/compliance",
-          "protocol/threat-model",
-          "protocol/conformance"
-        ]
-      },
-      {
-        "group": "Products",
-        "pages": [
-          "products/overview",
-          "products/os",
-          "products/console",
-          "products/avatars",
-          "products/operators",
-          "products/cmo-operator"
-        ]
-      },
-      {
-        "group": "Developers",
-        "pages": [
-          "developers/quickstart",
-          "developers/sdks",
-          "developers/api-reference",
-          "developers/deployment",
-          "developers/contributing"
-        ]
-      },
-      {
-        "group": "Resources",
-        "pages": [
-          "roadmap",
-          "changelog",
-          "faq",
-          "presskit"
-        ]
-      },
-      {
-        "group": "Archive",
-        "pages": [
-          "archive/notice",
-          "archive/2025-whitepaper",
-          "archive/web3-platform",
-          "archive/partnerships"
-        ]
-      },
-      {
-        "group": "Legal",
-        "pages": [
-          "legal/licenses",
-          "legal/security",
-          "legal/privacy"
-        ]
-      }
-    ],
     "tabs": [
       {
-        "tab": "Protocol",
-        "href": "/protocol"
-      },
-      {
-        "tab": "Products",
-        "href": "/products"
-      },
-      {
-        "tab": "Developers",
-        "href": "/developers"
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "architecture",
+              "facts"
+            ]
+          },
+          {
+            "group": "Protocol",
+            "pages": [
+              "protocol/overview",
+              "protocol/whitepaper",
+              "protocol/spec",
+              "protocol/tiers",
+              "protocol/invariants",
+              "protocol/csml",
+              "protocol/bridges",
+              "protocol/compliance",
+              "protocol/threat-model",
+              "protocol/conformance"
+            ]
+          },
+          {
+            "group": "Products",
+            "pages": [
+              "products/overview",
+              "products/os",
+              "products/console",
+              "products/avatars",
+              "products/operators",
+              "products/cmo-operator"
+            ]
+          },
+          {
+            "group": "Developers",
+            "pages": [
+              "developers/quickstart",
+              "developers/sdks",
+              "developers/api-reference",
+              "developers/deployment",
+              "developers/contributing"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "roadmap",
+              "changelog",
+              "faq",
+              "presskit"
+            ]
+          },
+          {
+            "group": "Archive",
+            "pages": [
+              "archive/notice",
+              "archive/2025-whitepaper",
+              "archive/web3-platform",
+              "archive/partnerships"
+            ]
+          },
+          {
+            "group": "Legal",
+            "pages": [
+              "legal/licenses",
+              "legal/security",
+              "legal/privacy"
+            ]
+          }
+        ]
       }
     ]
   },
