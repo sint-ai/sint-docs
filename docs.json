@@ -369,5 +369,9 @@
       "dark": "#02030B",
       "light": "#FAFAF7"
     }
+  },
+  "topLevelNavigation": false,
+  "sidebar": {
+    "variant": "default"
   }
 }
