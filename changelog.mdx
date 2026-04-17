@@ -1,37 +1,75 @@
 ---
 title: "Changelog"
-description: "Release notes for SINT Protocol, Platform, Face, and Canon."
+description: "Version history for SINT Protocol and products."
 ---
 
-# Changelog
+<Note>
+  Detailed per-release notes live in the repo's `CHANGELOG.md`. This page is a human-readable overview. For the authoritative list, see [github.com/sint-ai/sint-protocol/blob/main/CHANGELOG.md](https://github.com/sint-ai/sint-protocol/blob/main/CHANGELOG.md).
+</Note>
 
-Release notes for everything SINT Labs ships. Major version changes have their own migration guide.
+## v0.2 — April 2026
 
-Full per-repo changelogs:
+Major release. Protocol foundation laid, all twelve bridges shipping, conformance suite at 157 tests, 1,772 tests passing overall.
 
-- [SINT Protocol](https://github.com/sint-ai/sint-protocol/blob/main/CHANGELOG.md)
-- [Canon](https://github.com/sint-ai/canon/blob/main/CHANGELOG.md)
-- [gstack](https://github.com/sint-ai/gstack/blob/main/CHANGELOG.md)
-- [ROSClaw replication](https://github.com/sint-ai/rosclaw-replication/blob/main/CHANGELOG.md)
+**Breaking changes:**
+- Tier model consolidated from T1–T5 to T0–T3. Migration required for any v0.1 deployments.
+- License for code confirmed as Apache-2.0 (some earlier docs erroneously listed MIT — now aligned).
+- CSML definition locked as "Composite Safety-Model-Ledger" (earlier docs used "Continuous Safety Monitoring Language").
 
-## Highlights
+**Added:**
+- Twelve transport bridges (MCP, ROS 2, A2A, IoT, MQTT Sparkplug, OPC UA, Open-RMF, gRPC, MAVLink, Swarm, Economy, HAL)
+- Six formal invariants with informal proof sketches
+- STRIDE+B threat model with worked attack chains
+- 157-test conformance suite
+- Compliance crosswalk (IEC 62443 / EU AI Act / NIST AI RMF / ISO 42001)
+- Machine-readable tier crosswalk at `/v1/compliance/tier-crosswalk`
+- Academic whitepaper (arXiv preprint in submission)
 
-### Q1 2026
+**Changed:**
+- Policy Gateway latency target tightened to p99 < 3ms for T0
+- Evidence Ledger now requires SHA-256 hash chain with TEE signature option
+- Capability token schema expanded with physical constraints block
 
-- **Protocol v0.8** — first release under the rebranded SINT Labs; clarified Economy is optional; property test coverage raised across all five invariants; policy hot-reload landed
-- **Canon v0.4** — content-addressed manifest, per-scope audit, deterministic retrieval as default
-- **Face v0.5** — streaming TTS pipeline; 340ms median TTFA (from 780ms in v0.4); Widget Layer registration API
-- **SOP beta** — internal beta with four Agency clients; YAML Pipelines compile + deploy path stable
-- **ROSClaw** — arXiv preprint (2603.26997); IROS 2026 submission accepted
-- **MCP Security Analysis** — arXiv preprint (2601.17549)
+**Deprecated:**
+- v0.1 tier labels (T1–T5); will be removed in v0.4
+- Legacy `/gate` URL path; use `/v1/intercept` instead
 
-### Pre-pivot
+**Removed:**
+- `/v0/` API surface
 
-Older SINT Labs work (Web3-era agent framework, token economy, etc.) is archived. See [/origin](/origin) for the pivot narrative; older release notes are in repo history but not surfaced on this site.
+## v0.1 — Q3 2024
 
-## Release cadence
+Initial public release. Proof-of-concept gateway, basic token model, in-memory ledger.
 
-- **Protocol** — monthly minor releases; quarterly review of major bumps
-- **Face** — minor every 2–4 weeks while v0.x
-- **Canon** — minor as required
-- **Platform (SOP)** — internal continuous; external beta announcements quarterly
+## Pre-v0.1 — 2024
+
+Development snapshots. Not versioned publicly.
+
+---
+
+## Brand transition (April 2026)
+
+SINT Labs refocused from consumer Web3 agent work (archived at [/archive](/archive/notice)) to physical-AI governance and the current product stack. Not a semver change to the protocol — a company-level direction change.
+
+**What changed:**
+- Brand and positioning aligned to lab + products + studio
+- `@sinthive` → `@sintlabs` on X (handle rename, follower-preserving)
+- Earlier Web3 content moved to `/archive/*`
+- March 2025 whitepaper moved to `/archive/2025-whitepaper`
+- docs.sint.gg reorganized around Getting Started / Protocol / Products / Developers / Archive
+
+**What didn't change:**
+- Existing $SINT token-holder commitments
+- Telegram community (channel renamed, content preserved)
+- GitHub organization (`sint-ai` remains canonical)
+- All existing protocol code and documentation
+
+## Versioning policy
+
+SINT Protocol follows semantic versioning:
+
+- **Major** (v1 → v2): breaking API or schema changes
+- **Minor** (v0.2 → v0.3): backwards-compatible additions
+- **Patch** (v0.2.0 → v0.2.1): bug fixes only
+
+Pre-1.0 minor versions may include breaking changes, announced at least one minor version in advance.

@@ -1,0 +1,99 @@
+---
+title: "Compliance"
+description: "IEC 62443, EU AI Act, NIST AI RMF, ISO/IEC 42001 mappings."
+---
+
+SINT Protocol is designed to map cleanly to the three compliance frameworks that will matter for high-risk AI deployments in 2026 and beyond. The tier crosswalk is machine-readable at `GET /v1/compliance/tier-crosswalk`.
+
+<Warning>
+  **EU AI Act high-risk provisions take effect 2 August 2026.** Article 13 (transparency) and Article 14 (human oversight) are the two most directly addressed by SINT. Penalties reach €35M or 7% of global annual turnover.
+</Warning>
+
+## IEC 62443 — FR1 through FR7
+
+IEC 62443 is the canonical industrial-control-systems security series. IEC PAS 62443-1-6:2025 (published December 2025) extends it to Industrial IoT, which is where physical AI lives.
+
+| FR | Requirement | SINT mechanism |
+|---|---|---|
+| **FR1** | Identification & Authentication | `SintCapabilityToken` with Ed25519 identity; W3C DID portability; challenge-response in `PENDING_AUTH`. |
+| **FR2** | Use Control | Four-tier gate (T0–T3); `scope.allowedTools` allowlists; per-resource action restrictions. |
+| **FR3** | System Integrity | SHA-256 hash-chained Evidence Ledger; `ProofReceipt` with TEE attestation for T2/T3. |
+| **FR4** | Data Confidentiality | TLS 1.3 on all inter-component traffic; scoped tokens prevent sensor access without explicit grant. |
+| **FR5** | Restricted Data Flow | Policy Gateway allowlists; `geofence` constraint; per-topic SINT Bridge DFA. |
+| **FR6** | Timely Response to Events | `safety.estop.triggered` event; E-stop universality (I-G2); T0 p50 ≤ 1ms. |
+| **FR7** | Resource Availability | Per-token rate limiting; `maxRepetitions` constraint; budget enforcement in capsule sandbox. |
+
+## EU AI Act — Article 13 and Article 14
+
+<Note>
+  **Verifiable transparency, not claimed transparency.** The industry status quo is application-layer logs that are deletable, editable, and whose integrity rests on operational discipline. SINT's Evidence Ledger moves transparency from *claimed* to *verifiable*: append-only, SHA-256 hash-chained, TEE-signed per event, with deletion detectable by external audit.
+</Note>
+
+| Requirement | Industry status quo | SINT implementation |
+|---|---|---|
+| **Art. 13** log keeping for high-risk AI | Application logs, deletable | Append-only ledger, SHA-256 chain, deletion detectable |
+| **Art. 13** decision traceability | Human-readable audit trails | Machine-verifiable `decisionRef` linkage; TEE signature per event |
+| **Art. 14** human oversight | "Human in the loop" as policy statement | Formal T3 state; ESCALATING → HUMAN_APPROVED/DENIED/TIMEOUT |
+| **Art. 14(4)(e)** override mechanism | Kill switch procedure | `CircuitBreaker.trip()` with I-G2 universality; manual reset required |
+| **Art. 17** quality management | QMS documentation | [157-test conformance suite](/protocol/conformance); `AUDIT_CHAIN_VERIFIED` triggers external audit |
+| **Art. 9** risk management | Risk registers | Tier escalation function operationalizes continuous risk assessment |
+
+## NIST AI RMF
+
+NIST's AI Risk Management Framework organizes risk into four functions: GOVERN, MAP, MEASURE, MANAGE.
+
+| Function | NIST control | SINT mechanism |
+|---|---|---|
+| **GOVERN** | GOVERN-1.1 (human oversight policies) | T2/T3 escalation; CircuitBreaker |
+| **GOVERN** | GOVERN-1.2 (risk tolerance) | Per-deployment `SintDeploymentProfile` |
+| **GOVERN** | GOVERN-4.1 (accountability) | EvidenceLedger hash-chained append-only |
+| **MAP** | MAP-1.1 (risk identification) | PolicyGateway tier assignment |
+| **MAP** | MAP-3.5 | CSML risk scoring |
+| **MAP** | MAP-5.1 (stakeholder impact) | `PhysicsConstraints` with velocity/force/geofence |
+| **MEASURE** | MEASURE-1.1 (risk measurement) | CSML score |
+| **MEASURE** | MEASURE-2.5 (bias/fairness) | Per-model CSML |
+| **MEASURE** | MEASURE-2.6 (monitoring) | EvidenceLedger with SIEM export |
+| **MEASURE** | MEASURE-2.8 (operation) | PolicyGateway benchmark suite |
+| **MANAGE** | MANAGE-1.3 (risk response) | Tier escalation |
+| **MANAGE** | MANAGE-2.2 (treatment) | Token attenuation |
+| **MANAGE** | MANAGE-4.2 (incident response) | CircuitBreakerPlugin; forensic trail |
+
+Full mapping with sub-category evidence: [`docs/specs/nist-ai-rmf-crosswalk.md`](https://github.com/sint-ai/sint-protocol/blob/main/docs/specs/nist-ai-rmf-crosswalk.md).
+
+## ISO/IEC 42001
+
+| SINT tier | ISO/IEC 42001 clause |
+|---|---|
+| T0 Observe | Clause 9 + Clause 8 controls |
+| T1 Prepare | Clause 8.1 / 8.2 operational risk treatment |
+| T2 Act | Clause 8 + Clause 6 operational controls |
+| T3 Commit | Clause 8.3 + Clause 10 corrective governance |
+
+## OWASP Top 10 for Agentic Applications
+
+All ten ASI categories are addressed with dedicated regression tests in the [conformance suite](/protocol/conformance).
+
+| Category | SINT control |
+|---|---|
+| **ASI01** Goal Hijacking | GoalHijackPlugin (5-layer heuristics) + CSML drift detection |
+| **ASI02** Prompt Injection | T3 classification, token scoping |
+| **ASI03** Insecure Output | Transformation constraints |
+| **ASI04** Tool Misuse | PolicyGateway tier assignment |
+| **ASI05** Shell via Tool Calls | T3 CRITICAL classifier |
+| **ASI06** Memory Poisoning | MemoryIntegrityChecker |
+| **ASI07** Excessive Autonomy | T2 escalation threshold |
+| **ASI08** Inadequate Logging | EvidenceLedger mandatory recording |
+| **ASI09** Supply Chain | CapabilityToken chain validation |
+| **ASI10** Rogue Agent | CircuitBreakerPlugin (EU AI Act stop button) |
+
+## Machine-readable crosswalk
+
+```bash
+curl https://api.sint.gg/v1/compliance/tier-crosswalk
+```
+
+Returns the full mapping as JSON for integration into compliance automation tools.
+
+<Tip>
+  **Preparing for a compliance audit?** The [conformance suite](/protocol/conformance) generates a per-invariant certification bundle that auditors can ingest directly. See [`docs/reports/certification-bundle-summary.md`](https://github.com/sint-ai/sint-protocol/blob/main/docs/reports/certification-bundle-summary.md) in the repo.
+</Tip>

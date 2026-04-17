@@ -8,215 +8,449 @@
   },
   "favicon": "/favicon.svg",
   "colors": {
-    "primary": "#00E5FF",
-    "light": "#00E5FF",
-    "dark": "#0A0B0D",
+    "primary": "#00D9A3",
+    "light": "#00D9A3",
+    "dark": "#00A37A",
     "background": {
-      "dark": "#0A0B0D",
-      "light": "#F4F2ED"
+      "dark": "#0A0908",
+      "light": "#FAFAF7"
     }
   },
   "topbarLinks": [
     {
-      "name": "sint.gg",
-      "url": "https://sint.gg"
+      "name": "GitHub",
+      "url": "https://github.com/sint-ai/sint-protocol"
     },
     {
-      "name": "Founder",
-      "url": "https://sint.gg/founder"
+      "name": "sint.gg",
+      "url": "https://sint.gg"
     }
   ],
   "topbarCtaButton": {
-    "name": "GitHub",
-    "url": "https://github.com/sint-ai"
+    "name": "Whitepaper",
+    "url": "https://github.com/sint-ai/sint-protocol/blob/main/WHITEPAPER.md"
   },
-  "topAnchor": {
-    "name": "Documentation",
-    "icon": "book"
-  },
-  "anchors": [
+  "tabs": [
     {
       "name": "Protocol",
-      "icon": "shield",
       "url": "protocol"
     },
     {
-      "name": "Operators",
-      "icon": "robot",
-      "url": "operators"
+      "name": "Products",
+      "url": "products"
     },
     {
-      "name": "Platform",
-      "icon": "server",
-      "url": "platform"
+      "name": "Developers",
+      "url": "developers"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/sint-ai"
     },
     {
-      "name": "Face",
-      "icon": "user",
-      "url": "face"
+      "name": "Discord",
+      "icon": "discord",
+      "url": "https://discord.gg/cYyeqVQ5j4"
     },
     {
-      "name": "Research",
-      "icon": "flask",
-      "url": "research"
+      "name": "Changelog",
+      "icon": "list",
+      "url": "changelog"
     }
   ],
   "navigation": [
     {
-      "group": "Start here",
+      "group": "Getting Started",
       "pages": [
         "introduction",
-        "origin",
-        "ecosystem-map",
         "quickstart",
-        "support"
+        "architecture",
+        "facts"
       ]
     },
     {
-      "group": "SINT Protocol",
+      "group": "Protocol",
       "pages": [
         "protocol/overview",
-        "protocol/architecture",
-        "protocol/quickstart",
-        {
-          "group": "The five layers",
-          "pages": [
-            "protocol/layers/bridge",
-            "protocol/layers/gate",
-            "protocol/layers/engine",
-            "protocol/layers/economy",
-            "protocol/layers/avatar"
-          ]
-        },
-        {
-          "group": "Invariants",
-          "pages": [
-            "protocol/invariants/overview",
-            "protocol/invariants/i-t1-attenuation",
-            "protocol/invariants/i-g2-estop",
-            "protocol/invariants/i-g3-ledger",
-            "protocol/invariants/i-f1-fail-modes",
-            "protocol/invariants/i-p1-persistence"
-          ]
-        },
-        {
-          "group": "Reference",
-          "pages": [
-            "protocol/reference/capability-tokens",
-            "protocol/reference/evidence-ledger",
-            "protocol/reference/approval-tiers",
-            "protocol/reference/policy-language",
-            "protocol/reference/api"
-          ]
-        },
-        "protocol/security",
-        "protocol/contributing"
+        "protocol/whitepaper",
+        "protocol/spec",
+        "protocol/tiers",
+        "protocol/invariants",
+        "protocol/csml",
+        "protocol/bridges",
+        "protocol/compliance",
+        "protocol/threat-model",
+        "protocol/conformance"
       ]
     },
     {
-      "group": "SINT Operators",
+      "group": "Products",
       "pages": [
-        "operators/overview",
-        "operators/anatomy",
-        "operators/safety-envelope",
-        "operators/telemetry",
-        {
-          "group": "Flagship Operators",
-          "pages": [
-            "operators/revenue",
-            "operators/documents",
-            "operators/voice",
-            "operators/onboarding",
-            "operators/cmo",
-            "operators/inbox"
-          ]
-        }
+        "products/overview",
+        "products/os",
+        "products/console",
+        "products/avatars",
+        "products/operators",
+        "products/cmo-operator"
       ]
     },
     {
-      "group": "SINT Operator Platform",
+      "group": "Developers",
       "pages": [
-        "platform/overview",
-        "platform/console/overview",
-        "platform/console/dashboards",
-        "platform/console/approvals",
-        "platform/commons/overview",
-        "platform/commons/components",
-        "platform/commons/skills",
-        "platform/memory/overview",
-        "platform/memory/canon-integration",
-        "platform/cron/overview",
-        "platform/canon/overview",
-        "platform/canon/format",
-        "platform/canon/indexing",
-        "platform/pipelines/overview",
-        "platform/pipelines/yaml-spec",
-        "platform/pipelines/compilation",
-        "platform/pipelines/examples"
-      ]
-    },
-    {
-      "group": "SINT Face",
-      "pages": [
-        "face/overview",
-        "face/architecture",
-        "face/embed",
-        "face/widget-layer",
-        "face/conversation-compiler"
-      ]
-    },
-    {
-      "group": "Research",
-      "pages": [
-        "research/rosclaw",
-        "research/mcp-security"
+        "developers/quickstart",
+        "developers/sdks",
+        "developers/api-reference",
+        "developers/deployment",
+        "developers/contributing"
       ]
     },
     {
       "group": "Resources",
       "pages": [
+        "roadmap",
         "changelog",
-        "trust",
-        "press"
+        "faq",
+        "presskit"
+      ]
+    },
+    {
+      "group": "Archive",
+      "pages": [
+        "archive/notice",
+        "archive/2025-whitepaper",
+        "archive/web3-platform",
+        "archive/partnerships"
+      ]
+    },
+    {
+      "group": "Legal",
+      "pages": [
+        "legal/licenses",
+        "legal/security",
+        "legal/privacy"
       ]
     }
   ],
   "footerSocials": {
     "github": "https://github.com/sint-ai",
     "x": "https://x.com/sintlabs",
-    "linkedin": "https://linkedin.com/company/thesint"
+    "linkedin": "https://www.linkedin.com/company/sintlabs",
+    "discord": "https://discord.gg/cYyeqVQ5j4"
   },
-  "feedback": {
-    "thumbsRating": true,
-    "suggestEdit": true,
-    "raiseIssue": true
+  "footer": {
+    "links": [
+      {
+        "title": "SINT Labs",
+        "links": [
+          {
+            "label": "Homepage",
+            "url": "https://sint.gg"
+          },
+          {
+            "label": "Studio",
+            "url": "https://sint.gg/studio"
+          },
+          {
+            "label": "Work",
+            "url": "https://sint.gg/work"
+          },
+          {
+            "label": "About",
+            "url": "https://sint.gg/about"
+          },
+          {
+            "label": "Contact",
+            "url": "https://sint.gg/contact"
+          }
+        ]
+      },
+      {
+        "title": "Protocol",
+        "links": [
+          {
+            "label": "Whitepaper",
+            "url": "https://github.com/sint-ai/sint-protocol/blob/main/WHITEPAPER.md"
+          },
+          {
+            "label": "GitHub",
+            "url": "https://github.com/sint-ai/sint-protocol"
+          },
+          {
+            "label": "arXiv",
+            "url": "https://arxiv.org/"
+          }
+        ]
+      },
+      {
+        "title": "Legal",
+        "links": [
+          {
+            "label": "Licenses",
+            "url": "/legal/licenses"
+          },
+          {
+            "label": "Security",
+            "url": "/legal/security"
+          },
+          {
+            "label": "Privacy",
+            "url": "/legal/privacy"
+          }
+        ]
+      }
+    ]
   },
-  "search": {
-    "prompt": "Search SINT docs..."
+  "analytics": {
+    "plausible": {
+      "domain": "docs.sint.gg"
+    }
   },
-  "metadata": {
-    "og:image": "https://docs.sint.gg/og/default.png",
-    "og:site_name": "SINT Labs Documentation",
-    "twitter:site": "@sintlabs"
+  "seo": {
+    "indexHiddenPages": false
   },
   "redirects": [
-    { "source": "/introduction", "destination": "/origin", "permanent": true },
-    { "source": "/whitepaper", "destination": "/origin", "permanent": true },
-    { "source": "/whitepaper/:slug*", "destination": "/origin", "permanent": true },
-    { "source": "/security", "destination": "/protocol/security", "permanent": true },
-    { "source": "/mcp-marketplace", "destination": "/origin", "permanent": true },
-    { "source": "/sintbridge", "destination": "/protocol/layers/bridge", "permanent": true },
-    { "source": "/sintasibridge", "destination": "/origin", "permanent": true },
-    { "source": "/presskit", "destination": "/press", "permanent": true },
-    { "source": "/tokenomics", "destination": "/origin", "permanent": true },
-    { "source": "/tokenomics/:slug*", "destination": "/origin", "permanent": true },
-    { "source": "/marketplace", "destination": "/origin", "permanent": true },
-    { "source": "/marketplace/:slug*", "destination": "/origin", "permanent": true },
-    { "source": "/airdrop", "destination": "/origin", "permanent": true },
-    { "source": "/token", "destination": "/origin", "permanent": true },
-    { "source": "/asi", "destination": "/origin", "permanent": true },
-    { "source": "/agents/trading", "destination": "/origin", "permanent": true },
-    { "source": "/agents/defi", "destination": "/origin", "permanent": true },
-    { "source": "/agents/social", "destination": "/origin", "permanent": true }
+    {
+      "source": "/sint-os",
+      "destination": "/products/os",
+      "permanent": true
+    },
+    {
+      "source": "/gate",
+      "destination": "/protocol/spec",
+      "permanent": true
+    },
+    {
+      "source": "/bridges",
+      "destination": "/protocol/bridges",
+      "permanent": true
+    },
+    {
+      "source": "/trust-registry",
+      "destination": "/protocol/spec",
+      "permanent": true
+    },
+    {
+      "source": "/console",
+      "destination": "/products/console",
+      "permanent": true
+    },
+    {
+      "source": "/avatars",
+      "destination": "/products/avatars",
+      "permanent": true
+    },
+    {
+      "source": "/outreach",
+      "destination": "/products/operators",
+      "permanent": true
+    },
+    {
+      "source": "/cmo-operator",
+      "destination": "/products/cmo-operator",
+      "permanent": true
+    },
+    {
+      "source": "/sdks",
+      "destination": "/developers/sdks",
+      "permanent": true
+    },
+    {
+      "source": "/development",
+      "destination": "/developers/deployment",
+      "permanent": true
+    },
+    {
+      "source": "/mcp-marketplace",
+      "destination": "/protocol/bridges",
+      "permanent": true
+    },
+    {
+      "source": "/sintbridge",
+      "destination": "/protocol/bridges",
+      "permanent": true
+    },
+    {
+      "source": "/sintasibridge",
+      "destination": "/protocol/bridges",
+      "permanent": true
+    },
+    {
+      "source": "/whitepaper",
+      "destination": "/protocol/whitepaper",
+      "permanent": true
+    },
+    {
+      "source": "/whitepaper/:slug*",
+      "destination": "/protocol/whitepaper",
+      "permanent": true
+    },
+    {
+      "source": "/security",
+      "destination": "/legal/security",
+      "permanent": true
+    },
+    {
+      "source": "/origin",
+      "destination": "/introduction",
+      "permanent": true
+    },
+    {
+      "source": "/press",
+      "destination": "/presskit",
+      "permanent": true
+    },
+    {
+      "source": "/ecosystem-map",
+      "destination": "/architecture",
+      "permanent": true
+    },
+    {
+      "source": "/support",
+      "destination": "/developers/contributing",
+      "permanent": true
+    },
+    {
+      "source": "/trust",
+      "destination": "/protocol/invariants",
+      "permanent": true
+    },
+    {
+      "source": "/face",
+      "destination": "/products/avatars",
+      "permanent": true
+    },
+    {
+      "source": "/face/:slug*",
+      "destination": "/products/avatars",
+      "permanent": true
+    },
+    {
+      "source": "/operators",
+      "destination": "/products/operators",
+      "permanent": true
+    },
+    {
+      "source": "/operators/:slug*",
+      "destination": "/products/operators",
+      "permanent": true
+    },
+    {
+      "source": "/platform",
+      "destination": "/products/overview",
+      "permanent": true
+    },
+    {
+      "source": "/platform/console",
+      "destination": "/products/console",
+      "permanent": true
+    },
+    {
+      "source": "/platform/:slug*",
+      "destination": "/products/overview",
+      "permanent": true
+    },
+    {
+      "source": "/research",
+      "destination": "/protocol/overview",
+      "permanent": true
+    },
+    {
+      "source": "/research/mcp-security",
+      "destination": "/protocol/threat-model",
+      "permanent": true
+    },
+    {
+      "source": "/research/rosclaw",
+      "destination": "/protocol/bridges",
+      "permanent": true
+    },
+    {
+      "source": "/research/:slug*",
+      "destination": "/protocol/overview",
+      "permanent": true
+    },
+    {
+      "source": "/protocol/architecture",
+      "destination": "/architecture",
+      "permanent": true
+    },
+    {
+      "source": "/protocol/layers/bridge",
+      "destination": "/protocol/bridges",
+      "permanent": true
+    },
+    {
+      "source": "/protocol/layers/:slug*",
+      "destination": "/protocol/overview",
+      "permanent": true
+    },
+    {
+      "source": "/protocol/reference/:slug*",
+      "destination": "/protocol/spec",
+      "permanent": true
+    },
+    {
+      "source": "/protocol/research/:slug*",
+      "destination": "/protocol/overview",
+      "permanent": true
+    },
+    {
+      "source": "/protocol/security",
+      "destination": "/legal/security",
+      "permanent": true
+    },
+    {
+      "source": "/tokenomics",
+      "destination": "/archive/web3-platform",
+      "permanent": true
+    },
+    {
+      "source": "/tokenomics/:slug*",
+      "destination": "/archive/web3-platform",
+      "permanent": true
+    },
+    {
+      "source": "/marketplace",
+      "destination": "/archive/web3-platform",
+      "permanent": true
+    },
+    {
+      "source": "/marketplace/:slug*",
+      "destination": "/archive/web3-platform",
+      "permanent": true
+    },
+    {
+      "source": "/airdrop",
+      "destination": "/archive/web3-platform",
+      "permanent": true
+    },
+    {
+      "source": "/token",
+      "destination": "/archive/web3-platform",
+      "permanent": true
+    },
+    {
+      "source": "/asi",
+      "destination": "/archive/partnerships",
+      "permanent": true
+    },
+    {
+      "source": "/agents/trading",
+      "destination": "/products/operators",
+      "permanent": true
+    },
+    {
+      "source": "/agents/defi",
+      "destination": "/products/operators",
+      "permanent": true
+    },
+    {
+      "source": "/agents/social",
+      "destination": "/products/operators",
+      "permanent": true
+    }
   ]
 }

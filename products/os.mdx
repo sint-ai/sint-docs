@@ -1,0 +1,198 @@
+---
+title: "SINT OS"
+description: "The Jarvis-style unified runtime. Protocol + OpenClaw + Avatar + Console as one system."
+---
+
+**SINT OS** is what happens when you combine OpenClaw (the agent runtime), SINT Protocol (the governance engine), SINT Avatar (the face), and multimodal AI (the senses) into a single operating system for autonomous agents.
+
+SINT OS is not a separate product. It's the integration layer. Each component already exists and runs independently. SINT OS makes them work as one system.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         SINT OS                              │
+│                                                              │
+│  Face (Avatar) · Brain (Console) · Hands (Operators) ·       │
+│                  Content (CMO Operator)                       │
+│                          │                                    │
+│          @sint/os-core (Orchestrator)                        │
+│          Boot → Govern → React → Evidence                    │
+│                          │                                    │
+│     OpenClaw Adapter · SINT Protocol · Evidence HUD          │
+│                          │                                    │
+│              SINT Protocol Core                              │
+│  Tokens · Policy Gateway · Evidence Ledger · 12 bridges      │
+│                          │                                    │
+│              OpenClaw Runtime                                 │
+│  WS gateway · channels · MCP router · sessions · sandbox     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Core packages
+
+<CardGroup cols={2}>
+  <Card title="@sint/os-core" icon="cube">
+    Main entrypoint. Boots all components, orchestrates governance, connects avatar reactions to policy events.
+  </Card>
+  <Card title="@sint/openclaw-adapter" icon="plug">
+    The governance choke-point for OpenClaw. Every tool call passes through here before execution.
+  </Card>
+  <Card title="@sint/integration-langchain" icon="link">
+    LangChain callback handler and tool wrapper. SINT governance for LangChain agents.
+  </Card>
+</CardGroup>
+
+## Boot sequence
+
+```typescript
+import { SintOS } from "@sint/os-core";
+
+const os = new SintOS({
+  gatewayUrl:    "http://localhost:4100",
+  agentId:       "did:key:z6MkExample",
+  openclawWsUrl: "ws://127.0.0.1:18789",
+  avatar:        { serverUrl: "http://localhost:3005" },
+  evidenceHud:   { enabled: true },
+  crossSystemPolicies: DEFAULT_PHYSICAL_POLICIES
+});
+
+await os.boot();
+```
+
+`boot()` does:
+
+<Steps>
+  <Step title="Connect to SINT Protocol gateway">
+    Verifies health, registers this OS instance as a client.
+  </Step>
+  <Step title="Initialize OpenClaw adapter">
+    Maps all registered tools to T0–T3 tiers via the tier classifier.
+  </Step>
+  <Step title="Connect to Avatar server">
+    Verifies the 3D face is running; subscribes to expression and animation updates.
+  </Step>
+  <Step title="Start Evidence HUD">
+    Opens the real-time ledger stream.
+  </Step>
+  <Step title="Activate cross-system policy engine">
+    Loads the default plus custom cross-system policies.
+  </Step>
+</Steps>
+
+## Tier classification
+
+Every OpenClaw tool, MCP server, and node action is classified into a safety tier.
+
+| Tier | Description | OpenClaw examples |
+|---|---|---|
+| **T0** | Observe only | `read`, `web_search`, `web_fetch`, `memory_search`, `session_status` |
+| **T1** | Reversible digital | `write`, `edit` |
+| **T2** | Requires governance | `message.send`, `tts`, `image_generate`, `sessions_spawn`, `exec` (non-elevated) |
+| **T3** | Physical / irreversible | `exec` (elevated), `canvas.eval`, `nodes.invoke` |
+
+<Info>
+  T0 calls never hit the network. They're approved locally in microseconds. Governance adds zero latency to read operations.
+</Info>
+
+## Cross-system policies
+
+These policies span multiple subsystems — no single-protocol safety system can enforce them.
+
+| Policy | When active | Denies | Why |
+|---|---|---|---|
+| `no-fs-while-moving` | `robot.moving` | File writes | Prevents controller corruption during motion |
+| `no-exec-while-moving` | `robot.moving` | Shell execution | Prevents control-loop interference |
+| `no-deploy-while-active` | `cmd_vel` | Deploys | Can't restart while velocity commands active |
+| `no-network-while-armed` | `drone.armed` | Network, exec | Safety-critical — no external access while armed |
+
+```typescript
+// Activate a system state
+adapter.getStateTracker().activate("robot.moving");
+
+// File writes now automatically denied
+const result = await adapter.governToolCall({
+  tool:   "write",
+  params: { path: "/robot/config.yaml" }
+});
+// result.allowed === false
+// result.reason === "[Cross-System Policy: no-fs-while-moving] ..."
+```
+
+Custom policies:
+
+```typescript
+const os = new SintOS({
+  crossSystemPolicies: [
+    {
+      name:        "no-reboot-during-surgery",
+      whenActive:  "patient.connected",
+      denyActions: ["system:reboot*", "deploy:*"],
+      reason:      "Cannot disrupt systems during active patient monitoring"
+    }
+  ]
+});
+```
+
+## Avatar reactions
+
+Governance events route to visual avatar reactions.
+
+| Event | Expression | Animation | Widget |
+|---|---|---|---|
+| T0 approve | `default` | — | — |
+| T1 approve | `default` | `Head-Nod-Yes` | Status (3s) |
+| T2 deny | `thinking` | `Thoughtful-Head-Shake` | Status (8s) |
+| T3 escalate | `surprised` | `Thinking` | Approval action (30s) |
+
+## Evidence HUD
+
+Real-time viewer of the SHA-256 evidence ledger. Rolling window of governance decisions with chain-integrity verification.
+
+```typescript
+const hud = os.getEvidenceHUD();
+hud.onEntry((entry) => {
+  console.log(`${entry.tier} ${entry.outcome}: ${entry.resource}`);
+});
+
+const { valid, brokenAt } = hud.verifyChainIntegrity();
+```
+
+## End-to-end example: voice command
+
+"Jarvis, deploy the staging build":
+
+<Steps>
+  <Step>Voice → OpenClaw transcribes → text</Step>
+  <Step>Text → OpenClaw Gateway → SINT agent session</Step>
+  <Step>Agent proposes tool call: `exec("railway up --environment staging")`</Step>
+  <Step>`@sint/openclaw-adapter` classifies → T2</Step>
+  <Step>Cross-system check: `robot.moving`? No → continue</Step>
+  <Step>Policy Gateway validates token scope → ALLOW</Step>
+  <Step>Evidence ledger writes SHA-256 entry</Step>
+  <Step>OpenClaw executes the command</Step>
+  <Step>Result → Conversation Compiler → "Staging deploy is live."</Step>
+  <Step>Avatar: smile + Head-Nod-Yes + status widget</Step>
+  <Step>Evidence HUD: new entry in real-time feed</Step>
+</Steps>
+
+## Packages
+
+| Package | Description | Tests |
+|---|---|---|
+| `@sint/os-core` | Main entrypoint, lifecycle, orchestration | 9 |
+| `@sint/openclaw-adapter` | OpenClaw governance middleware | 42 |
+| `@sint/integration-langchain` | LangChain handler | 14 |
+
+Additional components pulled in transitively: `@sint/gate-capability-tokens`, `@sint/gate-policy-gateway`, `@sint/gate-evidence-ledger`, and all 12 bridges.
+
+## Read next
+
+<CardGroup cols={2}>
+  <Card title="Console" icon="brain" href="/products/console">
+    The visual control surface for SINT OS.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Run the OS locally in under five minutes.
+  </Card>
+</CardGroup>

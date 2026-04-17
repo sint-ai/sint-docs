@@ -1,0 +1,72 @@
+---
+title: "Products overview"
+description: "Four products. One stack. Unified by SINT OS, governed by SINT Protocol."
+---
+
+SINT Labs ships four products, unified by SINT OS. Each runs independently; SINT OS is the integration layer that makes them work as one system.
+
+<CardGroup cols={2}>
+  <Card title="SINT Console" icon="brain" href="/products/console">
+    **The brain.** Visual workflow builder, real-time agent orchestration, 31 feature modules.
+  </Card>
+  <Card title="SINT Avatars" icon="face-smile" href="/products/avatars">
+    **The face.** 3D WebGL avatar, voice I/O, Conversation Compiler, 18 widget types.
+  </Card>
+  <Card title="SINT Operators" icon="hand" href="/products/operators">
+    **The hands.** Outbound automation, reply classification, CRM routing.
+  </Card>
+  <Card title="CMO Operator" icon="video" href="/products/cmo-operator">
+    **The content engine.** Video-to-content pipeline with 18 skills.
+  </Card>
+</CardGroup>
+
+## The unifier
+
+<Card title="SINT OS" icon="cube" href="/products/os">
+  SINT OS is not a separate product. It's the integration layer. When the avatar hears a voice command, OS routes it through OpenClaw, SINT Protocol governs it, Console logs it, and Avatars responds with voice and widgets. One state machine, one evidence ledger, one set of cross-system policies.
+</Card>
+
+## The spine
+
+Everything governs through the same substrate.
+
+<Card title="SINT Protocol" icon="shield" href="/protocol/overview">
+  Capability tokens, policy gateway, evidence ledger, twelve transport bridges. Every product, every action, every agent flows through a single `intercept()` call. No bypass.
+</Card>
+
+## Cross-system policies
+
+The products' differentiator is **cross-system policies** — invariants that span multiple products simultaneously.
+
+| Policy | Active when | Denies |
+|---|---|---|
+| `no-fs-while-moving` | Avatar speaking + robot moving | File writes via Console |
+| `no-deploy-while-active` | Operators running outbound | Deploys via Console |
+| `no-publish-while-record` | CMO Operator recording | Content publish via Operators |
+
+No single product can enforce these. SINT OS can because every product publishes state into the same gateway.
+
+## Deployment modes
+
+<CardGroup cols={3}>
+  <Card title="Self-hosted">
+    Docker Compose or Kubernetes. You run it. Full source access.
+  </Card>
+  <Card title="Managed (soon)">
+    SINT Labs runs the gateway and products for you. Subscription.
+  </Card>
+  <Card title="Studio-deployed">
+    We deploy the full stack for you, customized to your workflows. See [Studio](https://sint.gg/studio).
+  </Card>
+</CardGroup>
+
+## Read next
+
+<CardGroup cols={2}>
+  <Card title="SINT OS guide" icon="cube" href="/products/os">
+    How the products integrate through os-core.
+  </Card>
+  <Card title="Developer quickstart" icon="rocket" href="/developers/quickstart">
+    Get started with SDKs and deployment.
+  </Card>
+</CardGroup>

@@ -1,0 +1,92 @@
+---
+title: "FAQ"
+description: "Questions we get often."
+---
+
+## About SINT Labs
+
+<AccordionGroup>
+  <Accordion title="What is SINT Labs?">
+    SINT Labs is an AI research and engineering lab. We build three things: the **SINT Protocol** (an open-source governance protocol for autonomous systems), **products** (SINT Console, Avatars, Operators, CMO Operator — unified as SINT OS), and **Studio** work (custom builds and enterprise deployments).
+  </Accordion>
+  <Accordion title="Is SINT Labs a crypto project?">
+    No. SINT Labs is an AI infrastructure company. Earlier SINT work (2024–2025) included a Web3 consumer platform with a $SINT token — that work is archived at [/archive](/archive/notice). Current SINT Labs work does not use tokens, does not do on-chain governance, and does not target crypto audiences.
+  </Accordion>
+  <Accordion title="What's the difference between SINT Labs, SINT Protocol, and SINT OS?">
+    **SINT Labs** is the company. **SINT Protocol** is the open-source governance protocol the company publishes. **SINT OS** is the company's runtime that integrates the Protocol with its products (Console, Avatars, Operators, CMO Operator). Think: SINT Labs publishes the Protocol (like Linux Foundation publishes Linux), and SINT Labs also sells products built on it (like Red Hat sells RHEL).
+  </Accordion>
+  <Accordion title="Who is behind SINT Labs?">
+    SINT Labs is founded and led by Illia Pashkov, based in Los Angeles. SINT Labs is incorporated as PSHKV Inc. in California. As of April 2026 the team is small — founder plus contractors — with hiring underway.
+  </Accordion>
+</AccordionGroup>
+
+## About the Protocol
+
+<AccordionGroup>
+  <Accordion title="Why does an AI agent need a governance protocol?">
+    Because model-level alignment isn't a safety invariant. The same natural-language command issued to four frontier models produces up to a 4.8× spread in out-of-policy attempts. An agent that acts in the physical or economic world needs an authorization layer that's independent of which model is at the wheel. See [Protocol overview](/protocol/overview).
+  </Accordion>
+  <Accordion title="How is SINT different from MCP permissions or OAuth scopes?">
+    Coarser authorization systems (API keys, OAuth, MCP server permissions) have no physics awareness, no tier-based human oversight, no cross-system coordination, and no tamper-evident audit. SINT addresses all four at the protocol boundary. Specifically: SINT tokens carry velocity/force/geofence constraints; SINT escalates to human approval based on a dynamic tier function; SINT's Policy Gateway coordinates across all twelve transport bridges; the SINT Evidence Ledger is SHA-256 hash-chained.
+  </Accordion>
+  <Accordion title="Is SINT Protocol production-ready?">
+    Current version is v0.2. The reference implementation has 1,772 tests passing, the 157-test conformance suite is green, and components are used in production on internal SINT Labs deployments and with pilot Studio clients. It's not at v1.0 yet, which means breaking changes can still happen in minor versions. Review the [changelog](/changelog) before deploying.
+  </Accordion>
+  <Accordion title="What license is the protocol under?">
+    Code is **Apache-2.0**. Specification is **CC BY 4.0**. See [licenses](/legal/licenses).
+  </Accordion>
+  <Accordion title="Can I run SINT in air-gapped or on-prem environments?">
+    Yes. The reference implementation has no external dependencies at runtime. Postgres and Redis are the only required infrastructure; both can run on-prem. TEE attestation is optional and can be configured against Intel SGX, AMD SEV-SNP, or AWS Nitro Enclaves.
+  </Accordion>
+  <Accordion title="Does SINT work with LLMs other than Claude or GPT?">
+    Yes. SINT is model-agnostic. The CSML score measures each model's in-situ behavior and adjusts the tier escalation function accordingly. Any LLM-driven agent can be governed by SINT, including open-weights models like Llama and Mistral.
+  </Accordion>
+</AccordionGroup>
+
+## About the products
+
+<AccordionGroup>
+  <Accordion title="What's SINT OS vs. SINT Console?">
+    **SINT OS** is the runtime — the integration layer that connects Protocol + products. It's headless. **SINT Console** is the visual control surface on top of OS. Think of OS as the kernel and Console as the desktop environment.
+  </Accordion>
+  <Accordion title="Can I use SINT Avatars without the rest of the stack?">
+    Technically yes — the Avatars repo runs standalone. Practically, the avatar is at its best when wired into OS because the Conversation Compiler and widget system use state from the Protocol's Evidence Ledger and Policy Gateway.
+  </Accordion>
+  <Accordion title="Is CMO Operator the same as `Sintra AI`?">
+    No. Sintra AI is an unrelated product with a similar name. CMO Operator is SINT Labs' content production pipeline, built on SINT OS and governed by SINT Protocol. We don't build or integrate with Sintra AI.
+  </Accordion>
+</AccordionGroup>
+
+## About Studio
+
+<AccordionGroup>
+  <Accordion title="Is SINT Labs an agency?">
+    SINT Studio is the agency/dev-shop arm of SINT Labs. It's one of three divisions (alongside Protocol and Products). We build agentic systems for companies who need the outcome without building the stack themselves. See [sint.gg/studio](https://sint.gg/studio).
+  </Accordion>
+  <Accordion title="How much does Studio cost?">
+    Starter engagements start at $25K for 2–4 weeks (one agentic loop, in production). Setup engagements start at $75K for 6–10 weeks (full operator deployment). Retainer engagements are monthly and priced per scope. See [sint.gg/studio](https://sint.gg/studio).
+  </Accordion>
+  <Accordion title="What kinds of companies does Studio work with?">
+    Services firms $3M–$20M revenue, 15–80 employees — professional services, legal, logistics, healthcare admin, real estate, marketing agencies. Companies with repeatable operational workflows where autonomous agents close quantifiable losses.
+  </Accordion>
+</AccordionGroup>
+
+## About archived work
+
+<AccordionGroup>
+  <Accordion title="What happened to the $SINT token?">
+    The $SINT token was part of SINT Hive, our earlier consumer Web3 platform. In April 2026 SINT Labs refocused on physical-AI governance. The Web3 consumer work is paused, not sunset. Existing commitments stand. See [/archive/web3-platform](/archive/web3-platform).
+  </Accordion>
+  <Accordion title="What about the Telegram Mini App?">
+    Still available. Community support continues. See [/archive/web3-platform](/archive/web3-platform).
+  </Accordion>
+  <Accordion title="What about ICE Open Network and Ozak AI partnerships?">
+    Those announcements are historical. See [/archive/partnerships](/archive/partnerships). They don't describe current SINT Labs work.
+  </Accordion>
+</AccordionGroup>
+
+## Still have questions?
+
+- GitHub Discussions: [github.com/sint-ai/sint-protocol/discussions](https://github.com/sint-ai/sint-protocol/discussions)
+- Discord: [discord.gg/cYyeqVQ5j4](https://discord.gg/cYyeqVQ5j4)
+- Email: i@pshkv.com (for direct questions)

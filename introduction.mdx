@@ -1,63 +1,94 @@
 ---
 title: "Introduction"
-description: "Documentation for SINT Labs — the open-source AI agent governance standard, the autonomous workflow Operators built on top of it, and the runtime that ships them."
+description: "SINT Labs is an AI research and engineering lab building the governance layer for autonomous systems."
 ---
 
-import { Card, CardGroup } from '/snippets/cards.mdx'
-
-# SINT Labs
-
-This is the engineering documentation for SINT Labs (PSHKV Inc., Los Angeles).
-
-If you're looking for the company and its services, start at **[sint.gg](https://sint.gg)**.
-
-If you're looking to build with the Protocol, install Operators, or integrate the Platform — you're in the right place.
-
 <Note>
-**A note on the past.** SINT pivoted away from its earlier Web3/agent-marketplace direction in early 2026. SINT Labs does not issue, sell, or plan to issue a token. Read the full pivot story at [/origin](/origin).
+  **SINT has refocused.** This site documents the SINT Protocol, SINT OS, and SINT Labs' products. Earlier Web3 and consumer-agent work (2024–2025) is archived at [/archive](/archive/notice). Nothing is being sunset — existing commitments stand.
 </Note>
 
-## What we ship
+## What SINT Labs builds
 
-<CardGroup cols={2}>
-  <Card title="SINT Protocol" icon="shield" href="/protocol/overview">
-    Open-source 5-layer governance standard for AI agents acting in the physical and financial world. Apache 2.0.
+SINT Labs is an AI research and engineering lab. We work on the layer between an agent's decision and its physical, financial, or irreversible consequence. Three divisions, one lab.
+
+<CardGroup cols={3}>
+  <Card title="Protocol" icon="shield" href="/protocol/overview">
+    SINT Protocol — the open-source governance standard for autonomous systems. Capability tokens, policy gateway, evidence ledger, twelve transport bridges.
   </Card>
-  <Card title="SINT Operators" icon="robot" href="/operators/overview">
-    Autonomous workflow systems we build and run for mid-market services firms.
+  <Card title="Products" icon="cube" href="/products/overview">
+    Console, Avatars, Operators, CMO Operator — unified by SINT OS. All governed by the Protocol.
   </Card>
-  <Card title="SINT Operator Platform" icon="server" href="/platform/overview">
-    The runtime — Console, Commons, Memory, Cron, Canon, YAML Pipelines.
-  </Card>
-  <Card title="SINT Face" icon="user" href="/face/overview">
-    Voice-first 3D agent interface — the visual layer of every Operator.
+  <Card title="Studio" icon="briefcase" href="https://sint.gg/studio">
+    Custom builds, enterprise deployments, dev shop. We deploy the stack for companies who need the outcome.
   </Card>
 </CardGroup>
 
-## How to navigate
+## The problem we work on
 
-- **New here?** Read [the ecosystem map](/ecosystem-map) for a one-page overview of how everything fits together. Then [Quickstart](/quickstart).
-- **Integrating the Protocol?** Start at [Protocol overview](/protocol/overview), then [Quickstart](/protocol/quickstart).
-- **Building an Operator?** Start at [Operator anatomy](/operators/anatomy) and [Safety envelope](/operators/safety-envelope).
-- **Running on the Platform?** Start at [Platform overview](/platform/overview).
-- **Embedding Face?** Start at [Face embed guide](/face/embed).
-- **Reading the research?** [ROSClaw](/research/rosclaw) and [MCP Security Analysis](/research/mcp-security).
+Model-level alignment is not a safety invariant. The same natural-language command issued to four frontier models on the same robot produces up to a 4.8× spread in out-of-policy attempts. The same MCP tool description, poisoned, yields arbitrary code execution on the client. The same robot platform, shipped with hardcoded keys, yields wormable BLE takeover.
 
-## Status
+The authorization layer for autonomous systems is missing. We're building it.
 
-| Component | Status | Public source |
-|---|---|---|
-| SINT Protocol | Shipping `v0.8.x` | [github.com/sint-ai/sint-protocol](https://github.com/sint-ai/sint-protocol) |
-| Canon | Beta `v0.4` | [github.com/sint-ai/canon](https://github.com/sint-ai/canon) |
-| gstack | Shipping `v0.3` | [github.com/sint-ai/gstack](https://github.com/sint-ai/gstack) |
-| ROSClaw replication | Public dataset | [github.com/sint-ai/rosclaw-replication](https://github.com/sint-ai/rosclaw-replication) |
-| SINT Face | Shipping `v0.5` | Source closed; SDK planned |
-| SINT Operator Platform | Internal beta | Public beta planned Q3 |
-| Operators | Delivered via Agency | [sint.gg/operators](https://sint.gg/operators) |
+## Start here
 
-## Contact
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Run SINT Protocol locally in under five minutes. Docker Compose spins up the gateway, dashboard, Postgres, and Redis.
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    How Protocol, SINT OS, OpenClaw, Avatar, and the products compose into a unified runtime.
+  </Card>
+  <Card title="Whitepaper" icon="file-lines" href="/protocol/whitepaper">
+    The formal specification — DFA, tier function, CSML, threat model, compliance mappings, and bibliography.
+  </Card>
+  <Card title="Protocol spec" icon="book" href="/protocol/spec">
+    The normative specification for anyone implementing SINT from scratch.
+  </Card>
+</CardGroup>
 
-- **General:** hello@sint.gg
-- **Security disclosures:** security@sint.gg ([policy](/protocol/security))
-- **Founder:** illia@sint.gg
-- **Press:** [press kit](/press)
+## Key numbers
+
+<CardGroup cols={4}>
+  <Card title="41" icon="boxes-stacked">
+    Packages in the monorepo
+  </Card>
+  <Card title="1,772" icon="check-double">
+    Tests passing
+  </Card>
+  <Card title="12" icon="network-wired">
+    Transport bridges
+  </Card>
+  <Card title="<3ms" icon="bolt">
+    P99 gateway latency
+  </Card>
+</CardGroup>
+
+<Info>
+  The authoritative source for current version, package count, test count, and license is the [FACTS page](/facts). All surfaces on this site derive from it.
+</Info>
+
+## Open source, open specification
+
+Everything below the product line is open and public.
+
+<CardGroup cols={2}>
+  <Card title="Apache-2.0" icon="code" href="/legal/licenses">
+    Reference implementation, conformance suite, all code.
+  </Card>
+  <Card title="CC BY 4.0" icon="book-open" href="/legal/licenses">
+    Whitepaper, specification, documentation.
+  </Card>
+</CardGroup>
+
+## Where to go next
+
+- **If you're researching or citing SINT** → [Whitepaper](/protocol/whitepaper) and the [arXiv preprint](https://arxiv.org/)
+- **If you're implementing SINT** → [Protocol spec](/protocol/spec) and [API reference](/developers/api-reference)
+- **If you're deploying SINT** → [Quickstart](/quickstart), [Deployment](/developers/deployment), or [Studio services](https://sint.gg/studio)
+- **If you're building on SINT OS** → [Products overview](/products/overview) and [SINT OS guide](/products/os)
+
+---
+
+<Tip>
+  **Something missing from these docs?** Open an issue on [github.com/sint-ai/sint-protocol/issues](https://github.com/sint-ai/sint-protocol/issues) or a discussion at [github.com/sint-ai/sint-protocol/discussions](https://github.com/sint-ai/sint-protocol/discussions). We read every one.
+</Tip>

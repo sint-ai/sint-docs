@@ -1,0 +1,106 @@
+---
+title: "SINT Console"
+description: "The brain of the stack. Visual workflow builder, real-time agent orchestration, 31 feature modules."
+---
+
+**SINT Console** is the visual control surface for running autonomous AI systems. Workflow builder, agent orchestration, policy management, real-time monitoring. What the operator sees when they're managing live agents.
+
+<CardGroup cols={3}>
+  <Card title="31 modules" icon="boxes-stacked">
+    Feature modules organized by function — agent management, workflow design, policy configuration, audit review.
+  </Card>
+  <Card title="Visual workflow builder" icon="diagram-project">
+    Design agent behavior through a drag-and-drop canvas. No code required for standard patterns.
+  </Card>
+  <Card title="Real-time orchestration" icon="satellite-dish">
+    Watch live agent sessions. Intervene, approve T3 actions, rewind via ledger playback.
+  </Card>
+</CardGroup>
+
+## What Console does
+
+Console is the operator's primary surface for the SINT stack. It connects to the SINT Protocol gateway and provides:
+
+- **Agent lifecycle management.** Create, configure, start, stop, and retire agents. Manage capability token scope per agent.
+- **Workflow design.** Build multi-step agent workflows visually. Each step is a policy-governed action.
+- **Policy configuration.** Edit tier assignments, Δ-factor weights, cross-system policies, forbidden combinations — all through a UI backed by the Protocol's native schemas.
+- **Approval queue.** Review and resolve T2 and T3 escalations. M-of-N quorum supported for high-consequence actions.
+- **Audit and forensics.** Query the evidence ledger. Rewind sessions. Export certification bundles for compliance audits.
+- **Metrics dashboards.** Gateway latency, CSML trends, approval SLAs, bridge health.
+
+## Architecture
+
+Console is a React 19 + Vite 6 application that speaks to the SINT Protocol gateway via HTTP, SSE, and WebSocket.
+
+```
+User
+  │
+  ▼
+Console (React + Vite)
+  ├── HTTP  → /v1/* (CRUD, queries, config)
+  ├── SSE   → /v1/approvals/events (real-time approvals)
+  └── WS    → /v1/approvals/ws (low-latency operator UI)
+  │
+  ▼
+SINT Protocol Gateway
+  │
+  ▼
+Evidence Ledger + Bridges
+```
+
+Console does not bypass the Protocol. Every configuration change Console makes (policy edit, agent spawn, approval resolve) itself passes through the Gateway with the operator's own capability token.
+
+## Feature modules
+
+Modules are organized into five groups:
+
+<AccordionGroup>
+  <Accordion title="Agent management (6 modules)">
+    Agent roster, capability token issuance, delegation chains, agent health monitoring, session history, retirement flow.
+  </Accordion>
+  <Accordion title="Workflow design (8 modules)">
+    Visual canvas, step library, policy-aware connectors, simulation mode, workflow versioning, template gallery, import/export, cross-workflow dependencies.
+  </Accordion>
+  <Accordion title="Policy configuration (7 modules)">
+    Tier editor, Δ-factor weights, cross-system policy builder, forbidden combinations, rate-limit configuration, CSML weight tuning, per-deployment profile manager.
+  </Accordion>
+  <Accordion title="Approvals and oversight (5 modules)">
+    Pending queue, approval history, M-of-N quorum configuration, sponsor delegation, approval SLA dashboard.
+  </Accordion>
+  <Accordion title="Audit and metrics (5 modules)">
+    Ledger query, chain verification, session rewind, certification bundle export, metrics dashboards (gateway, CSML, approvals, bridges).
+  </Accordion>
+</AccordionGroup>
+
+## Operator authentication
+
+Console operators authenticate via standard OIDC/SAML (enterprise) or Ed25519 key pair (self-hosted). Every operator has:
+
+- An individual DID (`did:sint:human:<id>`)
+- A capability token defining which actions they can take in Console
+- A sponsor relationship mapping (which agents they can approve T3 for)
+
+Operator actions are recorded on the evidence ledger just like agent actions.
+
+## Deployment
+
+Console deploys alongside the gateway. A single Docker Compose starts both:
+
+```bash
+pnpm run stack:dev
+# Gateway:   http://localhost:3100
+# Console:   http://localhost:3201
+```
+
+For production, Console is typically hosted behind a company SSO and restricted to operator personnel. See [deployment](/developers/deployment).
+
+## Read next
+
+<CardGroup cols={2}>
+  <Card title="SINT OS" icon="cube" href="/products/os">
+    How Console composes with the rest of the stack.
+  </Card>
+  <Card title="Tiers" icon="layer-group" href="/protocol/tiers">
+    The tier model Console surfaces in its approval queue.
+  </Card>
+</CardGroup>

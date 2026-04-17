@@ -1,0 +1,167 @@
+---
+title: "Developer quickstart"
+description: "Build with SINT in 15 minutes. SDKs, first intercept, first bridge."
+---
+
+This quickstart assumes you've already run the [top-level quickstart](/quickstart) and have the gateway running on `localhost:3100`. Now we'll build against it.
+
+## Install an SDK
+
+<CodeGroup>
+```bash TypeScript
+pnpm add @sint/sdk
+```
+
+```bash Python
+pip install sint-sdk
+```
+
+```bash Go
+go get github.com/sint-ai/sint-sdk-go
+```
+
+```bash Rust
+cargo add sint-sdk
+```
+</CodeGroup>
+
+## Your first intercept
+
+<CodeGroup>
+```typescript TypeScript
+import { SintClient } from "@sint/sdk";
+
+const client = new SintClient({
+  gatewayUrl: "http://localhost:3100",
+  agentDID:   "did:key:z6MkExample"
+});
+
+// Issue a capability token
+const token = await client.tokens.issue({
+  scope: {
+    resources: ["mcp://weather/*"],
+    actions:   ["read"]
+  },
+  expiresIn: 3600
+});
+
+// Intercept a request
+const decision = await client.intercept({
+  tokenRef: token.tokenId,
+  resource: "mcp://weather/current",
+  action:   "read",
+  parameters: { location: "Los Angeles" }
+});
+
+if (decision.decision === "ALLOW") {
+  // Proceed with the action
+}
+```
+
+```python Python
+from sint_sdk import SintClient
+
+client = SintClient(
+    gateway_url="http://localhost:3100",
+    agent_did="did:key:z6MkExample"
+)
+
+token = client.tokens.issue(
+    scope={
+        "resources": ["mcp://weather/*"],
+        "actions":   ["read"]
+    },
+    expires_in=3600
+)
+
+decision = client.intercept(
+    token_ref=token.token_id,
+    resource="mcp://weather/current",
+    action="read",
+    parameters={"location": "Los Angeles"}
+)
+
+if decision.decision == "ALLOW":
+    # Proceed with the action
+    pass
+```
+</CodeGroup>
+
+## What just happened
+
+<Steps>
+  <Step title="Token issued">
+    The gateway generated an Ed25519-signed capability token bound to your agent DID and scoped to `mcp://weather/*`.
+  </Step>
+  <Step title="Request intercepted">
+    The intercept call sent a SintRequest to the gateway. The gateway validated the token, checked scope, computed the effective tier via the escalation function, and returned a PolicyDecision.
+  </Step>
+  <Step title="Ledger entry">
+    The decision was written to the evidence ledger with a SHA-256 hash linking it to the previous entry. You can verify the chain via `/v1/ledger/verify`.
+  </Step>
+</Steps>
+
+## Wiring up your agent
+
+The intercept pattern works with any agentic framework. Wrap every tool call with an intercept check.
+
+```typescript
+async function governedToolCall(tool: string, args: any) {
+  const decision = await client.intercept({
+    tokenRef: currentToken.tokenId,
+    resource: `tool://${tool}`,
+    action:   "invoke",
+    parameters: args
+  });
+
+  if (decision.decision === "ALLOW") {
+    return executeTool(tool, args);
+  }
+
+  if (decision.decision === "ESCALATE") {
+    const approval = await client.approvals.await(decision.approvalId, {
+      timeout: 30000
+    });
+    if (approval.resolved === "approved") {
+      return executeTool(tool, args);
+    }
+    throw new Error("Action not approved");
+  }
+
+  throw new Error(`Action denied: ${decision.rationale.matchedRule}`);
+}
+```
+
+## Framework integrations
+
+<CardGroup cols={2}>
+  <Card title="LangChain">
+    Use `@sint/integration-langchain` to wrap every LangChain tool in a SINT-governed callback.
+  </Card>
+  <Card title="MCP">
+    Deploy the SINT MCP bridge in front of any MCP server. See [bridges](/protocol/bridges).
+  </Card>
+  <Card title="ROS 2">
+    Deploy the ROS 2 bridge node to intercept topics, services, and actions with physics-aware policy.
+  </Card>
+  <Card title="OpenClaw">
+    Drop in `@sint/openclaw-adapter`. Every OpenClaw tool call passes through the Gateway.
+  </Card>
+</CardGroup>
+
+## Read next
+
+<CardGroup cols={2}>
+  <Card title="SDKs" icon="code" href="/developers/sdks">
+    Per-language SDK reference.
+  </Card>
+  <Card title="API reference" icon="book" href="/developers/api-reference">
+    All gateway endpoints.
+  </Card>
+  <Card title="Deployment" icon="server" href="/developers/deployment">
+    Production deployment recipes.
+  </Card>
+  <Card title="Contributing" icon="git-branch" href="/developers/contributing">
+    Contribute to the protocol.
+  </Card>
+</CardGroup>

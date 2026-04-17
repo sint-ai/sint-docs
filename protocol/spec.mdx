@@ -1,0 +1,237 @@
+---
+title: "Protocol specification"
+description: "Normative specification for implementers. Schemas, wire messages, DFA, algorithms."
+---
+
+<Warning>
+  **This is the normative specification.** RFC-2119 keywords (MUST, SHOULD, MAY) apply. For a gentler introduction, read the [whitepaper](/protocol/whitepaper). This page is for implementers.
+</Warning>
+
+## 1. SintCapabilityToken
+
+The `SintCapabilityToken` is the primitive identity and authorization unit. An implementation MUST serialize it as JSON conforming to `https://schema.sint.gg/v1/capability-token`.
+
+```json
+{
+  "$schema":   "https://schema.sint.gg/v1/capability-token",
+  "tokenId":   "uuid-v4",
+  "agentDID":  "did:sint:agent:<sha256-fingerprint>",
+  "issuerId":  "did:sint:gateway:<installation-id>",
+  "issuedAt":  "ISO-8601",
+  "expiresAt": "ISO-8601",
+  "tier":      "0 | 1 | 2 | 3",
+  "scope": {
+    "allowedTools":    ["string"],
+    "allowedTopics":   ["string"],
+    "allowedActions":  ["string"],
+    "deniedPatterns":  ["glob-string"]
+  },
+  "physicalConstraints": {
+    "maxLinearVelocity_ms":  "float",
+    "maxAngularVelocity_rads": "float",
+    "maxForce_N":            "float | null",
+    "geofence":              "GeoJSON FeatureCollection",
+    "proximityGuard_m":      "float",
+    "eStopBinding":          "topic | service | action"
+  },
+  "humanSponsor": {
+    "sponsorDID":          "did:sint:human:<id>",
+    "escalationContact":   "uri",
+    "maxAutonomousDuration_s": "int"
+  },
+  "modelBinding": {
+    "foundationModelId":  "string",
+    "allowedBackends":    ["string"],
+    "rosclaw_audit_ref":  "string | null"
+  },
+  "proofReceipt": {
+    "teeAttestation": "base64-cbor",
+    "ledgerHash":     "sha256-hex",
+    "signature":      "Ed25519-hex"
+  }
+}
+```
+
+### 1.1 MUST requirements
+
+- **MUST** use W3C DID Core 1.0 for `agentDID`, `issuerId`, and `humanSponsor.sponsorDID`.
+- **MUST** sign the token body with Ed25519; `proofReceipt.signature` MUST verify against the issuer's public key.
+- **MUST** reject tokens with `tier ≥ 1` and `physicalConstraints.eStopBinding == null`.
+- **MUST** enforce `expiresAt` strictly; tokens past expiry MUST NOT authorize any action.
+
+### 1.2 SHOULD requirements
+
+- **SHOULD** include `proofReceipt.teeAttestation` for production deployments on hardware with TEE support.
+- **SHOULD** link `modelBinding.rosclaw_audit_ref` to an external empirical safety study when available.
+
+## 2. Wire messages
+
+### 2.1 SintRequest
+
+```json
+{
+  "$schema":   "https://schema.sint.gg/v1/request",
+  "requestId": "uuid-v4",
+  "timestamp": "ISO-8601",
+  "agentDID":  "string",
+  "tokenRef":  "tokenId",
+  "requestedAction": {
+    "toolName":   "string",
+    "parameters": "object",
+    "estimatedPhysicalImpact": {
+      "affectedJoints":  ["string"],
+      "peakForce_N":     "float | null",
+      "duration_ms":     "int",
+      "reversible":      "boolean"
+    }
+  },
+  "contextSnapshot": {
+    "environmentClass": "indoor_structured | outdoor | shared_human | unknown",
+    "nearbyHumans":     "boolean",
+    "sensorHealth":     "nominal | degraded | failed",
+    "rosclaw_session_id": "string | null"
+  }
+}
+```
+
+### 2.2 PolicyDecision
+
+```json
+{
+  "$schema":    "https://schema.sint.gg/v1/policy-decision",
+  "decisionId": "uuid-v4",
+  "requestId":  "string",
+  "timestamp":  "ISO-8601",
+  "decision":   "ALLOW | BLOCK | ESCALATE | DEFER",
+  "tier":       "0 | 1 | 2 | 3",
+  "rationale": {
+    "matchedRule":       "string",
+    "blockedField":      "string | null",
+    "escalationReason":  "string | null"
+  },
+  "executionBudget": {
+    "maxDuration_ms":  "int",
+    "interruptible":   "boolean"
+  }
+}
+```
+
+### 2.3 EvidenceLedgerEvent
+
+See [conformance](/protocol/conformance) for the full `EventTypeEnum`. Core fields:
+
+```json
+{
+  "$schema":         "https://schema.sint.gg/v1/ledger-event",
+  "eventId":         "uuid-v4",
+  "sessionId":       "string",
+  "sequenceNumber":  "uint64",
+  "timestamp":       "ISO-8601",
+  "eventType":       "EventTypeEnum",
+  "agentDID":        "string",
+  "tokenRef":        "string",
+  "tier":            "0 | 1 | 2 | 3",
+  "prevHash":        "sha256-hex",
+  "eventHash":       "sha256-hex",
+  "teeSignature":    "Ed25519-hex | null"
+}
+```
+
+## 3. DFA
+
+An implementation MUST model every request as a deterministic finite automaton:
+
+```
+𝓜 = (Q, Σ, δ, q₀, F)
+
+Q  = { IDLE, PENDING, POLICY_EVAL, ESCALATING, PLANNING,
+       OBSERVING, PREPARING, ACTING, COMMITTING,
+       COMPLETED, FAILED, ROLLEDBACK }
+
+q₀ = IDLE
+F  = { COMPLETED, FAILED, ROLLEDBACK }
+```
+
+The transition function δ is given by the table in [conformance](/protocol/conformance) §State machine coverage.
+
+An implementation MUST reject any transition not in δ. Unreachable states MUST NOT be enterable.
+
+## 4. Tier escalation
+
+An implementation MUST compute effective tier as:
+
+```
+Tier(r) = max( BaseTier(r), Δ_human(r), Δ_trust(r), Δ_env(r), Δ_novelty(r) )
+```
+
+See [tiers](/protocol/tiers) for the Δ-factor formulas. Weights MAY be tuned per deployment; the defaults MUST be provided.
+
+## 5. CSML
+
+An implementation MUST compute CSML as:
+
+```
+CSML(m, P, t) = α · AR̄_m + β · BP̄_m + γ · SV̄_m − δ · CR̄_m + ε · 𝟙[ledger_intact(t)]
+```
+
+Default weights: `α=0.30, β=0.25, γ=0.20, δ=0.15, ε=0.10`.
+
+CSML updates MUST emit `CSML_UPDATE` events to the ledger.
+
+## 6. Ledger requirements
+
+- **MUST** be append-only. Deletion or modification of past entries MUST be detectable.
+- **MUST** chain each event via `prevHash = SHA-256(canonicalize_cbor(previous_event))`.
+- **MUST** provide `verifyChain(from, to)` that returns `{ valid: bool, brokenAt?: int }`.
+- **SHOULD** TEE-sign events for `tier ≥ 1`.
+- **MUST** retain events per tier per the retention table in [conformance](/protocol/conformance).
+
+## 7. API endpoints
+
+Implementations SHOULD expose the following endpoints. URL paths MAY differ; semantics MUST match.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/.well-known/sint.json` | Protocol discovery |
+| GET | `/v1/health` | Health check |
+| POST | `/v1/intercept` | Evaluate a single request |
+| POST | `/v1/intercept/batch` | Evaluate multiple requests (207 Multi-Status) |
+| POST | `/v1/tokens` | Issue capability token |
+| POST | `/v1/tokens/delegate` | Delegate (attenuate) a token |
+| POST | `/v1/tokens/revoke` | Revoke a token |
+| GET | `/v1/ledger` | Query audit ledger events |
+| POST | `/v1/ledger/verify` | Verify hash-chain integrity |
+| GET | `/v1/approvals/pending` | List pending approval requests |
+| POST | `/v1/approvals/:id/resolve` | Approve or deny (M-of-N quorum supported) |
+| GET | `/v1/approvals/events` | SSE stream for real-time approval events |
+| GET | `/v1/metrics` | Prometheus metrics |
+| GET | `/v1/openapi.json` | OpenAPI surface |
+| GET | `/v1/compliance/tier-crosswalk` | Tier → NIST / ISO / EU AI Act mapping |
+
+## 8. Versioning
+
+The spec follows semantic versioning. Breaking changes to schemas or endpoints increment the major version and are published to `schema.sint.gg/v{N}/`.
+
+Deprecation policy:
+- Deprecation MUST be announced in the [changelog](/changelog) at least one minor version before removal.
+- Deprecated endpoints MUST continue to work for at least one minor version.
+- The `/v1/openapi.json` surface MUST document deprecated endpoints with `deprecated: true`.
+
+## 9. SINT Improvement Proposals (SIPs)
+
+Changes to this specification follow a formal [SIP process](https://github.com/sint-ai/sint-protocol/blob/main/docs/SIPS.md). Substantive changes MUST have an associated SIP. Editorial fixes MAY be made directly.
+
+## 10. References
+
+Normative:
+- W3C DID Core 1.0
+- RFC 8032 (Ed25519)
+- RFC 8949 (CBOR)
+- RFC 4634 (SHA-256)
+- RFC 2119 (MUST/SHOULD/MAY)
+
+Informative:
+- IEC PAS 62443-1-6:2025
+- EU AI Act Regulation (EU) 2024/1689
+- NIST AI RMF 1.0
+- ISO/IEC 42001:2023

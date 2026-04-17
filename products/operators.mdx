@@ -1,0 +1,97 @@
+---
+title: "SINT Operators"
+description: "The hands. Production-ready agentic loops for outbound automation and business workflows."
+---
+
+**SINT Operators** are production-ready agentic loops for business automation. LinkedIn outreach, reply classification, CRM routing, escalation, A/B testing. Built on SINT Protocol governance so every action is capability-scoped, audited, and tier-gated.
+
+## What Operators do
+
+An Operator is a long-running agentic loop that owns a specific business workflow end-to-end. Unlike a chatbot or a one-shot LLM call, an Operator:
+
+- **Persists state** across days, weeks, or months
+- **Acts under governance** — every external call is tier-classified and capability-scoped
+- **Audits itself** — every decision lands on the evidence ledger
+- **Learns within bounds** — reply classification and routing improve with confirmed outcomes; bounded by policy
+
+## Reference Operators
+
+### LinkedIn outreach loop
+
+The first reference Operator. Replaces the manual SDR workflow for services firms.
+
+**What it does:**
+1. Ingests target lists (CSV, CRM integration, or manual upload)
+2. Runs multi-step LinkedIn sequences with configurable cadence
+3. Classifies replies (positive / neutral / negative / unsubscribe / out-of-office)
+4. Routes positive replies to the sales lead via email or CRM
+5. Escalates edge cases to a human for T2 approval
+6. A/B tests subject lines, openings, and CTAs with statistical rigor
+
+**Stack:**
+- Ulinc as the LinkedIn transport layer
+- GoHighLevel (or other CRM) for routing
+- Claude for reply drafting and classification
+- SINT Protocol for tier-gating and audit
+
+**Deployment pattern:** see `sint-ai/sint-outreach` on GitHub.
+
+### Inbound qualification
+
+Handles first-touch lead qualification across channels.
+
+**What it does:**
+1. Ingests inbound leads from forms, Calendly, referrals
+2. Runs a short qualification prompt (2–4 exchanges)
+3. Decides: book / human-approve / disqualify
+4. Either books a calendar slot directly or escalates
+5. Produces a daily digest for the sales lead
+
+### Document intake
+
+Classifies, routes, and escalates inbound documents for compliance-heavy workflows (legal, clinical admin, insurance).
+
+**What it does:**
+1. OCR on inbound documents (fax, email attachment, upload)
+2. Classifier determines document type
+3. T2 routing decisions pass through the Gateway
+4. T3 actions (PHI handling, escalation to clinician, legal hold) require human approval
+5. Full trace-back on any document action via evidence ledger
+
+## Why Operators run on SINT Protocol
+
+The Protocol is not an add-on. It's what makes an agentic loop safe to run unattended.
+
+<Steps>
+  <Step title="Capability-scoped">
+    Each Operator holds a capability token that limits what it can do. A LinkedIn outreach Operator cannot suddenly send email or make API calls to unapproved services.
+  </Step>
+  <Step title="Tier-gated">
+    Routine reply classification is T1 (auto-approved, audited). Routing a lead to a sales partner's calendar is T2 (requires review on edge cases). Sending a message on behalf of a human is T3 (requires approval).
+  </Step>
+  <Step title="Audited">
+    Every reply classification, every routing decision, every message sent — it's all on the evidence ledger with SHA-256 chain integrity. Any compliance team can audit an Operator's full decision history.
+  </Step>
+  <Step title="Revocable">
+    If an Operator starts misbehaving, the Gateway can revoke its token in real time. No need to restart processes or reconfigure rules.
+  </Step>
+</Steps>
+
+## Building your own Operator
+
+Operators are just agentic loops that use the SINT SDK. See [developer quickstart](/developers/quickstart) for the SDK, and [bridges](/protocol/bridges) for the integration points.
+
+## Studio engagements
+
+Most Operators are deployed by SINT Studio rather than built from scratch by customers. If you want an Operator deployed for your workflow without the engineering cost, see [Studio services](https://sint.gg/studio).
+
+## Read next
+
+<CardGroup cols={2}>
+  <Card title="Work" icon="briefcase" href="https://sint.gg/work">
+    Case studies of Operators in production.
+  </Card>
+  <Card title="CMO Operator" icon="video" href="/products/cmo-operator">
+    The content-production Operator.
+  </Card>
+</CardGroup>

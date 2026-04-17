@@ -1,0 +1,92 @@
+---
+title: "Contributing"
+description: "How to contribute to SINT Protocol and the products."
+---
+
+SINT Protocol is open source under Apache-2.0. The specification is open under CC BY 4.0. Contributions are welcome.
+
+## Ways to contribute
+
+<CardGroup cols={2}>
+  <Card title="Spec clarifications" icon="book">
+    Find an ambiguity in the [protocol spec](/protocol/spec)? Open a PR or file a [SIP](https://github.com/sint-ai/sint-protocol/blob/main/docs/SIPS.md).
+  </Card>
+  <Card title="Bridge implementations" icon="plug">
+    Implement a transport bridge for a protocol we don't yet cover. See [bridges](/protocol/bridges) for the Bridge interface.
+  </Card>
+  <Card title="SDK ports" icon="code">
+    Port the SDK to a new language. SDKs follow the [coverage matrix](/developers/sdks).
+  </Card>
+  <Card title="Conformance tests" icon="clipboard-check">
+    Add regression tests against known physical-AI incidents. See [conformance suite](/protocol/conformance).
+  </Card>
+  <Card title="Documentation" icon="pen">
+    Fix typos, clarify prose, add examples. Docs live in `docs/` and on `docs.sint.gg`.
+  </Card>
+  <Card title="Research" icon="flask">
+    Empirical safety studies, formal-methods work, academic papers citing SINT — we read and respond to everything.
+  </Card>
+</CardGroup>
+
+## Contribution workflow
+
+<Steps>
+  <Step title="Open an issue first (for substantive changes)">
+    For anything larger than a typo fix, open an issue before coding. We'll confirm the direction, surface related work, and save you time.
+  </Step>
+  <Step title="Fork and branch">
+    Fork `sint-ai/sint-protocol` and create a feature branch.
+  </Step>
+  <Step title="Write tests">
+    Every change needs tests. No PR without a red-green-refactor loop is merged.
+  </Step>
+  <Step title="Run the suite">
+    `pnpm run test` locally. CI runs the full 1,772-test suite on every PR.
+  </Step>
+  <Step title="Sign your commits">
+    Use `git commit -s` (DCO, not CLA). We accept commits signed under the Developer Certificate of Origin.
+  </Step>
+  <Step title="Open the PR">
+    Include a clear description, link to the issue, and a short impact statement (breaking change? performance regression? new dependency?).
+  </Step>
+</Steps>
+
+## Coding standards
+
+- **TypeScript 5.7, strict mode.** No `any`. No `@ts-ignore` without a justifying comment.
+- **`Result<T, E>` over exceptions** for fallible operations. See the repo's existing error-handling patterns.
+- **Tests colocated with code.** `foo.ts` → `foo.test.ts` in the same directory.
+- **No new dependencies without discussion.** We aim for minimal dependencies; a heavyweight library has to earn its place.
+
+## SIP process
+
+Substantive changes to the specification follow the SINT Improvement Proposal process:
+
+1. Open a SIP issue using the template in `docs/SIPS.md`
+2. Discuss in the issue; revise until stable
+3. PR the spec change alongside the SIP
+4. Merge requires approval from at least two existing maintainers
+
+## Security
+
+Security-sensitive contributions (auth, crypto, attestation) require additional review. Please coordinate with maintainers before opening a PR touching these areas.
+
+Report vulnerabilities privately — see [security policy](/legal/security).
+
+## Steering committee
+
+A steering committee is forming in Q2 2026. It will govern SIP acceptance, release cadence, and maintainer appointments. If you have standing in robotics security, agent identity, or industrial compliance and want to participate, write to i@pshkv.com.
+
+## Recognition
+
+Contributors are listed in `CONTRIBUTORS.md`. Substantial contributors get a `did:sint:contributor:*` identity and an entry in the certification bundle metadata.
+
+## Code of conduct
+
+We follow the [Contributor Covenant 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). Behavior that makes contribution unwelcoming is not acceptable regardless of technical contribution.
+
+## Questions
+
+- GitHub Discussions: [github.com/sint-ai/sint-protocol/discussions](https://github.com/sint-ai/sint-protocol/discussions)
+- Discord: [discord.gg/cYyeqVQ5j4](https://discord.gg/cYyeqVQ5j4)
+- Email: i@pshkv.com

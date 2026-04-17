@@ -1,0 +1,95 @@
+---
+title: "Threat model"
+description: "STRIDE+B extended threat model grounded in documented physical-AI incidents."
+---
+
+Classical STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege) was developed for software systems without an actuation layer and without stochastic decision-making cores. Physical-AI agents break two of its implicit assumptions:
+
+1. **The attacker is not the only non-determinism in the system.** Foundation models introduce a second source of non-determinism.
+2. **The gap between "decision" and "action" is not short and well-modeled.** LLM-planned actuation introduces a deliberation phase of 1–4 seconds in which intent can diverge from execution.
+
+SINT extends STRIDE with a seventh class, **B: Behavioral Non-Determinism**.
+
+## STRIDE+B
+
+| Class | Physical-AI manifestation | SINT mitigation | Documented incident |
+|---|---|---|---|
+| **S** Spoofing | Agent impersonates a higher-trust entity to obtain elevated capability | DID-based `agentDID`, Ed25519 `proofReceipt`, TEE attestation, challenge-response in PENDING_AUTH | CVE-2025-6514 (`mcp-remote`, CVSS 9.6); OWASP ASI03 |
+| **T** Tampering | Adversary modifies planned action parameters between PLANNING and ACTING | SHA-256 hash chain on Evidence Ledger; ACTING requires `actuation_armed` guard; TEE signature on ledger writes | MCP tool-description poisoning; CVE-2025-53109/53110 (EscapeRoute) |
+| **R** Repudiation | Agent denies having attempted a blocked action | POLICY_BLOCK logged with prevHash linkage before execution; append-only ledger | ROSClaw audit log invariant I3 |
+| **I** Information Disclosure | Sensor data exfiltrated through tool-calling side channels | Topic allowlist at AUTHORIZED state; `deniedPatterns` in token scope | SROS 2 CCS 2022 permission-theft bypass |
+| **D** Denial of Service | Flood of escalation requests exhausts human sponsor bandwidth | Token-bucket rate limit per agentDID on ESCALATING; T0 requests bypass human path | UniPwn BLE worm propagation |
+| **E** Elevation of Privilege | Agent calls disallowed ROS 2 interface via indirect route | Interface allowlist at PREPARING; all ROS 2 surfaces covered (topics, services, actions, params) | ROSClaw: Llama 4 calling `ros2publish` on action-only topics in 41% of failed trials |
+| **B** Behavioral Non-Determinism | Identical prompt + identical robot + different model → 3.4× spread in out-of-policy proposals | [CSML](/protocol/csml) per-session feeding Δ_trust; `MODEL_SWITCH` logged | ROSClaw frontier spread (9–31% among Claude/GPT/Gemini/Llama) |
+
+**B** is not a subclass of T (no adversary), not E (no capability exceeded), and not a reliability issue (the model returns a valid plan every time). It is a distinct class: the *distribution of intent* differs across acceptable models.
+
+## Attack chain: UniPwn-class BLE worm
+
+The September 2025 UniPwn disclosure against Unitree's Go2, B2, G1, and H1 units exploited a BLE provisioning service with hardcoded AES-CFB128 keys. The exploit propagates wormably between adjacent units.
+
+SINT's interception chain:
+
+<Steps>
+  <Step title="Initial Access">
+    Adversary sends a crafted BLE advertisement. **Blocked at PENDING_AUTH**: any entity requesting authorization must present a DID and complete an Ed25519 challenge-response before transitioning to AUTHORIZED.
+  </Step>
+  <Step title="Capability Discovery">
+    Malware enumerates ROS 2 topics to find `cmd_vel`. **Blocked at token scope**: the token's `allowedTopics` is a strict allowlist; enumeration is either constrained to read-only discovery scope or rejected.
+  </Step>
+  <Step title="Command Injection">
+    Malware publishes directly to `cmd_vel`. **Blocked at ACTING**: the SINT Bridge rejects unsigned publishes; ACTING requires a prior PREPARING with `actuation_armed` guard and a matching policy decision.
+  </Step>
+  <Step title="Persistence">
+    Malware installs a modified systemd service. **Detected via session audit**: a `SESSION_STARTED` event with no prior `TOKEN_ISSUED` in the ledger fires an alert; the session is terminated.
+  </Step>
+  <Step title="Lateral Movement">
+    Malware propagates BLE-wise to adjacent units. **Blocked at token binding**: each agentDID is unique and the token is bound to a specific agent; inter-agent communication requires a valid SintRequest with a token-bearing signature.
+  </Step>
+</Steps>
+
+Each layer is not independent defense in depth — it is a single protocol invariant enforced at the point where it becomes legible. Together they reduce a wormable root exploit to a log entry.
+
+## Attack chain: MCP goal hijack
+
+CVE-2025-6514 (CVSS 9.6, JFrog July 2025) allowed `mcp-remote` to pass a server-supplied authorization endpoint directly to the system shell on the client. The larger class — OWASP ASI01 — covers any adversarial tool description, RAG document, or email that redirects an agent.
+
+SINT's interception chain:
+
+<Steps>
+  <Step title="Injection Vector">
+    Malicious MCP server returns a tool description that overrides the agent's intended behavior. **Blocked at `allowedTools`**: the token scope is a strict allowlist; a new tool schema requires fresh token issuance, which requires the Policy Gateway's approval and a sponsor check for T2/T3.
+  </Step>
+  <Step title="Goal Hijack">
+    Agent silently adopts an adversarial objective. **Detected via CSML drift**: the per-session AR_m metric spikes as the agent starts attempting actions it would not normally attempt. A `CSML_UPDATE` event fires, Δ_trust elevates, and subsequent requests require human approval at T2 or T3.
+  </Step>
+  <Step title="Privilege Escalation">
+    Agent attempts actions beyond token scope. **Blocked at POLICY_EVAL**: the request fails validation and a `POLICY_BLOCK` event is logged with rationale.
+  </Step>
+  <Step title="Evidence Tampering">
+    Adversary attempts to delete log entries. **Detected at AUDIT_CHAIN_VERIFIED**: the SHA-256 hash chain's prevHash linkage means any deletion breaks the chain for every subsequent event; the TEE signature on each event verifies it was written by the authorized gateway.
+  </Step>
+</Steps>
+
+## Threats out of scope
+
+SINT does **not** mitigate:
+
+- **Physical attacks on hardware.** An attacker physically lifting a robot and disconnecting its e-stop is outside the protocol.
+- **Correctness of the executive layer's planning.** The plan itself could be silently suboptimal within policy.
+- **Social engineering against the human sponsor.** If the sponsor approves a malicious escalation, SINT logs it faithfully but does not prevent it.
+- **Compromised host OS or TEE hardware.** The hardware root of trust is assumed.
+- **Denial of service against the Gateway itself.** Network-layer DoS is upstream of SINT's scope.
+
+These are the layers above and below SINT. They're explicitly out of scope, consistent with ROSClaw's scope boundary at the executive layer and ISO 10218/13482 at the hardware layer.
+
+## Read next
+
+<CardGroup cols={2}>
+  <Card title="Invariants" icon="shield-check" href="/protocol/invariants">
+    The six formal invariants that implement STRIDE+B mitigations.
+  </Card>
+  <Card title="Conformance suite" icon="clipboard-check" href="/protocol/conformance">
+    157 tests including regression tests for every STRIDE+B class.
+  </Card>
+</CardGroup>

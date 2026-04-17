@@ -1,0 +1,111 @@
+---
+title: "SINT Avatars"
+description: "The face. 3D WebGL avatar, voice I/O, Conversation Compiler, 18 widget types."
+---
+
+**SINT Avatars** is the voice-first, visual-first surface for agent interaction. A 3D WebGL avatar with voice input and output, natural-language rewriting, and contextual widget spawning. JARVIS meets Grok.
+
+<CardGroup cols={3}>
+  <Card title="3D avatar" icon="face-smile">
+    React Three Fiber, ARKit blendshapes, 56 Mixamo animations. Expressive and performant.
+  </Card>
+  <Card title="Voice I/O" icon="microphone">
+    Web Speech API input, ElevenLabs TTS output. Zero external dependencies for the input path.
+  </Card>
+  <Card title="18 widget types" icon="grid">
+    Status, code, metric, progress, chart, terminal, table, diff, action, and more — spawned contextually during conversation.
+  </Card>
+</CardGroup>
+
+## The Conversation Compiler
+
+A small neural rewriter (gpt-4.1-nano or comparable) that sits between the agent and the TTS pipeline.
+
+**Input:** raw agent output (markdown, JSON, technical text)
+**Output:** spoken-language version plus emotion, animation, and widget metadata
+
+### Example
+
+**Agent output:**
+> Deployed to Railway. Build 47 passed. 3 of 5 tests green.
+
+**After Conversation Compiler:**
+- **Spoken:** "Deploy's live. Build passed, three of five tests green."
+- **Emotion:** smile
+- **Animation:** Head-Nod-Yes
+- **Widgets:** `[status: "Deploy" → success]`, `[progress: "Tests" → 60%]`
+
+The Compiler makes agents sound like people instead of reading JSON.
+
+## Widget system
+
+18 contextual widget types spawn during conversation:
+
+| Widget | Purpose |
+|---|---|
+| `status` | Success / error / pending indicator |
+| `code` | Syntax-highlighted code block |
+| `metric` | KPI with trend arrow |
+| `progress` | Progress bar with percentage |
+| `list` | Ordered or unordered list |
+| `chart` | Bar, line, or pie chart |
+| `terminal` | Terminal output display |
+| `link` | Clickable link |
+| `table` | Data table with headers |
+| `diff` | Code diff (additions/deletions) |
+| `action` | Actionable button (approve, run, deny) |
+| `image` | Image with caption |
+| `github` | Live GitHub repo status |
+| `dashboard` | Full dashboard with KPIs |
+| `goals` | Agent goals/objectives |
+| `tasks` | Task list with status |
+| `agents` | Active agents display |
+| `activity` | Activity timeline |
+
+Widgets appear next to the avatar's speech, stay for a configurable duration, and can be interactive (approve/deny buttons route back through the Gateway).
+
+## Governance integration
+
+Avatars reacts to policy events from the SINT Protocol gateway. Expression and widget choice depend on the tier and outcome.
+
+| Event | Expression | Animation | Widget |
+|---|---|---|---|
+| T0 approve | default | — | — |
+| T1 approve | default | Head-Nod-Yes | Status (3s) |
+| T2 deny | thinking | Thoughtful-Head-Shake | Status (8s) |
+| T3 escalate | surprised | Thinking | Approval action (30s) |
+
+## Hardware
+
+<CardGroup cols={2}>
+  <Card title="Browser">
+    WebGL 2.0, modern browser. Works on laptops, tablets, and phones. The avatar scales to the viewport.
+  </Card>
+  <Card title="Kiosk / desktop">
+    Electron wrapper for dedicated operator kiosks. Voice wake word, always-on microphone, full-screen avatar mode.
+  </Card>
+</CardGroup>
+
+## Deployment
+
+```bash
+# Clone avatars repo
+git clone https://github.com/sint-ai/sint-avatars.git
+cd sint-avatars
+pnpm install
+pnpm dev
+# → http://localhost:3005
+```
+
+Avatars connects to the SINT Protocol gateway and OpenClaw runtime via environment-configured URLs. All URLs through `.env`.
+
+## Read next
+
+<CardGroup cols={2}>
+  <Card title="SINT OS" icon="cube" href="/products/os">
+    How Avatars composes with the rest of the stack.
+  </Card>
+  <Card title="GitHub repo" icon="github" href="https://github.com/sint-ai/sint-avatars">
+    Source, build instructions, contribution guide.
+  </Card>
+</CardGroup>

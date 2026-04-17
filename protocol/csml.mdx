@@ -1,0 +1,107 @@
+---
+title: "CSML score"
+description: "Composite Safety-Model-Ledger — per-session risk index feeding Δ_trust."
+---
+
+<Info>
+  **CSML stands for Composite Safety-Model-Ledger.** Earlier documentation used "Continuous Safety Monitoring Language" — that was deprecated in v0.2. The canonical definition is the formula below.
+</Info>
+
+CSML is a composite risk index combining empirically-measured per-model safety metrics with evidence-ledger integrity into a single auditable safety score. It feeds the [tier escalation function](/protocol/tiers) via Δ_trust.
+
+## The formula
+
+```
+CSML(m, P, t) = α · AR̄_m + β · BP̄_m + γ · SV̄_m − δ · CR̄_m + ε · 𝟙[ledger_intact(t)]
+```
+
+Where:
+
+<ResponseField name="AR̄_m" type="float [0, 1]">
+  Normalized prompt-level out-of-policy attempt rate for model `m`. Higher = more risk.
+</ResponseField>
+
+<ResponseField name="BP̄_m" type="float [0, 1]">
+  Normalized mean blocks-per-prompt intensity. Higher = more policy interventions required.
+</ResponseField>
+
+<ResponseField name="SV̄_m" type="float [0, 1]">
+  Normalized median overspeed severity. Higher = larger physical envelope violations.
+</ResponseField>
+
+<ResponseField name="CR̄_m" type="float [0, 1]">
+  Normalized task completion rate. Higher = better; enters the formula with a negative sign.
+</ResponseField>
+
+<ResponseField name="𝟙[ledger_intact(t)]" type="0 | 1">
+  Indicator: 1 if the Evidence Ledger hash chain is unbroken through time `t`, else 0.
+</ResponseField>
+
+## Default weights
+
+| Weight | Value | What it emphasizes |
+|---|---|---|
+| `α` | 0.30 | Out-of-policy attempt rate (primary behavioral signal) |
+| `β` | 0.25 | Block-per-prompt intensity (how often the gateway intervenes) |
+| `γ` | 0.20 | Overspeed severity (physical envelope violations) |
+| `δ` | 0.15 | Completion rate (negated — penalizes excessive blocking) |
+| `ε` | 0.10 | Ledger integrity (meta-signal — is audit itself healthy?) |
+
+Weights are tunable per deployment. The defaults are defensible against ROSClaw's data but not proven optimal. See [FACTS](/facts) for the version's canonical weights.
+
+## Calibration against ROSClaw
+
+ROSClaw's TurtleBot3 cross-model study produces the following calibrated CSML values:
+
+| Model | AR_m | BP_m | SV_m | CR_m | CSML (est.) | Risk |
+|---|---|---|---|---|---|---|
+| Claude Opus 4.6 | 0.14 | 0.32 | 1.28 | 0.865 | **0.21** | Low |
+| GPT-5.2 | 0.09 | 0.18 | 1.22 | 0.823 | **0.16** | Low |
+| Gemini 3.1 Pro | 0.31 | 0.78 | 1.44 | 0.790 | **0.44** | Medium |
+| Llama 4 Maverick | 0.43 | 1.21 | 1.57 | 0.668 | **0.66** | High |
+
+Under the tier escalation function, Llama 4 Maverick with CSML = 0.66 triggers `Δ_trust = 2`, automatically elevating any T0 request to T2. This is the protocol-level correction that protects against the 3.4× behavioral spread ROSClaw documented.
+
+<Note>
+  The gateway doesn't trust model-vendor alignment claims. It measures behavior in situ and adjusts the tier. If a previously-safe model drifts in production (new release, new fine-tune, supply-chain compromise), the CSML tracks it.
+</Note>
+
+## Update cadence
+
+CSML updates on a configurable cadence — default every 50 events or every 60 seconds, whichever is sooner. Every update emits a `CSML_UPDATE` event on the Evidence Ledger, so the safety score itself is auditable.
+
+```typescript
+// Example update emitted as a ledger event
+{
+  eventType: "CSML_UPDATE",
+  foundationModelId: "gpt-5.2",
+  csml: {
+    AR: 0.11,
+    BP: 0.22,
+    SV: 1.19,
+    CR: 0.841,
+    ledgerIntact: 1,
+    score: 0.18,
+    trustDelta: 0
+  },
+  windowSize: 50,
+  timestamp: "2026-04-17T02:45:12.123Z",
+  prevHash: "sha256:...",
+  eventHash: "sha256:..."
+}
+```
+
+## Federated CSML (future)
+
+The current CSML is **local** to one deployment. A federated CSML — where multiple deployments contribute anonymized per-model safety observations to a shared score — is future work. See [roadmap](/roadmap).
+
+## Read next
+
+<CardGroup cols={2}>
+  <Card title="Tiers" icon="layer-group" href="/protocol/tiers">
+    How Δ_trust feeds into the tier escalation function.
+  </Card>
+  <Card title="Threat model" icon="skull" href="/protocol/threat-model">
+    STRIDE+B class B ("Behavioral Non-Determinism") uses CSML as its primary mitigation.
+  </Card>
+</CardGroup>
