@@ -1,0 +1,83 @@
+---
+title: "SDKs"
+description: "Per-language SDKs. TypeScript, Python, Go, Rust."
+---
+
+SINT ships first-party SDKs in four languages. All SDKs wrap the same HTTP/SSE gateway API and cover the full protocol surface.
+
+<CardGroup cols={2}>
+  <Card title="TypeScript" icon="node-js" href="https://github.com/sint-ai/sint-protocol/tree/main/packages/sdk">
+    **`@sint/sdk`** — primary SDK, full coverage, used in Console and Avatars.
+  </Card>
+  <Card title="Python" icon="python" href="https://github.com/sint-ai/sint-sdk-python">
+    **`sint-sdk`** — Python 3.10+, type-hinted, async-first.
+  </Card>
+  <Card title="Go" icon="golang" href="https://github.com/sint-ai/sint-sdk-go">
+    **`github.com/sint-ai/sint-sdk-go`** — idiomatic Go, context-aware.
+  </Card>
+  <Card title="Rust" icon="rust" href="https://github.com/sint-ai/sint-sdk-rust">
+    **`sint-sdk`** on crates.io — async, serde-friendly, no unsafe.
+  </Card>
+</CardGroup>
+
+## Coverage matrix
+
+| Feature | TypeScript | Python | Go | Rust |
+|---|---|---|---|---|
+| Token issuance | ✓ | ✓ | ✓ | ✓ |
+| Token delegation | ✓ | ✓ | ✓ | ✓ |
+| Token revocation | ✓ | ✓ | ✓ | ✓ |
+| Intercept | ✓ | ✓ | ✓ | ✓ |
+| Batch intercept | ✓ | ✓ | ✓ | — |
+| Approval wait (SSE) | ✓ | ✓ | ✓ | ✓ |
+| Approval resolve | ✓ | ✓ | ✓ | ✓ |
+| Ledger query | ✓ | ✓ | ✓ | ✓ |
+| Ledger verify | ✓ | ✓ | ✓ | ✓ |
+| CSML read | ✓ | ✓ | — | — |
+| LangChain integration | ✓ | ✓ | — | — |
+| OpenClaw integration | ✓ | — | — | — |
+
+## Common patterns
+
+### Async-safe client
+
+All SDKs are thread/goroutine/async-safe. Create one client per process, share across agents.
+
+### Token rotation
+
+Tokens expire. SDKs include a `TokenManager` that handles automatic rotation:
+
+```typescript
+const tokenMgr = client.tokenManager({
+  refreshBefore: 60_000,  // refresh 60s before expiry
+  scope: { resources: ["..."], actions: ["..."] }
+});
+
+await tokenMgr.ensureValid();
+const token = tokenMgr.current();
+```
+
+### Approval waiting
+
+The `approvals.await()` helper wraps the SSE endpoint:
+
+```typescript
+const approval = await client.approvals.await(approvalId, {
+  timeout: 30000,
+  onUpdate: (event) => console.log("Status:", event.status)
+});
+
+if (approval.resolved === "approved") {
+  // Proceed
+}
+```
+
+## Stability
+
+- **TypeScript SDK**: stable. Semantic versioning within the monorepo's version.
+- **Python, Go, Rust SDKs**: beta. May have breaking changes until v1.0.
+- **Gateway API**: versioned at `/v1/`. Breaking changes increment the major version and are announced in the [changelog](/changelog).
+
+## Contributing
+
+SDK contributions welcome. See [contributing](/developers/contributing).

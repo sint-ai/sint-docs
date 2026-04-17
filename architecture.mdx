@@ -1,0 +1,199 @@
+---
+title: "Architecture"
+description: "How SINT Protocol, SINT OS, OpenClaw, Avatar, and the products compose into a unified runtime."
+---
+
+SINT Labs ships three conceptual layers: the **Protocol** (authorization substrate), **SINT OS** (the runtime that unifies products), and **the products** themselves (Console, Avatars, Operators, CMO Operator). Each component exists and runs independently. SINT OS is the integration layer that makes them work as one system.
+
+## The unified stack
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         SINT OS                              │
+│                                                              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────┐ │
+│  │  Avatar   │  │ Console  │  │ Operator │  │  CMO        │ │
+│  │  (Face)   │  │ (Brain)  │  │ (Hands)  │  │ (Content)   │ │
+│  │  3D+Voice │  │ 31 mods  │  │ LinkedIn │  │ 18 skills   │ │
+│  └────┬──────┘  └────┬─────┘  └────┬─────┘  └─────┬───────┘ │
+│       │              │             │               │         │
+│       └──────────────┼─────────────┼───────────────┘         │
+│                      │             │                          │
+│          ┌───────────┴─────────────┴───────────┐             │
+│          │     @sint/os-core (Orchestrator)     │             │
+│          │  Boot → Govern → React → Evidence    │             │
+│          └───────────┬─────────────────────────┘             │
+│                      │                                        │
+│     ┌────────────────┼────────────────────┐                  │
+│     │                │                    │                   │
+│  ┌──┴──────────┐  ┌──┴──────────┐  ┌─────┴──────────┐      │
+│  │  OpenClaw    │  │  SINT       │  │  Evidence      │      │
+│  │  Adapter     │  │  Protocol   │  │  HUD           │      │
+│  │  (T0-T3)    │  │  (Gateway)  │  │  (Ledger View) │      │
+│  └──┬──────────┘  └──┬──────────┘  └────────────────┘      │
+│     │                │                                       │
+│     │   ┌────────────┴─────────────────────┐                │
+│     │   │     SINT Protocol Core            │                │
+│     │   │  • Capability Tokens (Ed25519)    │                │
+│     │   │  • Policy Gateway (32 endpoints)  │                │
+│     │   │  • Evidence Ledger (SHA-256)       │                │
+│     │   │  • 12 Protocol Bridges            │                │
+│     │   └───────────────────────────────────┘                │
+│     │                                                        │
+│  ┌──┴──────────────────────────────────┐                    │
+│  │     OpenClaw Runtime                 │                    │
+│  │  • WebSocket Gateway (port 18789)    │                    │
+│  │  • 20+ Channel Plugins              │                    │
+│  │  • MCP Tool Router                   │                    │
+│  │  • Session Manager                   │                    │
+│  │  • Cron Scheduler                    │                    │
+│  │  • Docker Sandbox                    │                    │
+│  └──────────────────────────────────────┘                    │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## Layer-by-layer
+
+<CardGroup cols={2}>
+  <Card title="Face — SINT Avatar" icon="face-smile" href="/products/avatars">
+    3D WebGL avatar with voice I/O, Conversation Compiler, 18 widget types. React Three Fiber.
+  </Card>
+  <Card title="Brain — SINT Console" icon="brain" href="/products/console">
+    31 feature modules, visual workflow builder, real-time agent orchestration.
+  </Card>
+  <Card title="Hands — SINT Operators" icon="hand" href="/products/operators">
+    LinkedIn automation, reply classification, CRM routing. Production agentic loops.
+  </Card>
+  <Card title="Content — CMO Operator" icon="video" href="/products/cmo-operator">
+    Video-to-content pipeline with 18 skills, multi-channel publishing.
+  </Card>
+  <Card title="Spine — SINT Protocol" icon="shield" href="/protocol/overview">
+    Capability tokens, policy gateway, evidence ledger, 12 transport bridges.
+  </Card>
+  <Card title="OS — OpenClaw runtime" icon="server" href="/products/os">
+    Agent runtime: WebSocket gateway, channel plugins, MCP router, session manager, sandbox.
+  </Card>
+</CardGroup>
+
+## The Protocol core
+
+Every product and agent action flows through the same governance core. This is not an optional middleware — it's the only path to physical actuation.
+
+<Steps>
+  <Step title="Capability tokens">
+    Ed25519-signed tokens encode resource scope, allowed actions, physical constraints, time bounds, and a delegation chain of max 3 hops. Attenuation-only delegation: a child token's scope is always a subset of its parent's.
+  </Step>
+  <Step title="Policy Gateway">
+    A single `intercept()` entry point. Every request validates schema, token, scope, rate limit, physical constraint, and tier assignment before reaching a transport bridge.
+  </Step>
+  <Step title="Evidence Ledger">
+    SHA-256 hash-chained append-only log. Every decision is recorded with a prevHash pointer, providing tamper evidence without requiring blockchain infrastructure.
+  </Step>
+  <Step title="Transport bridges">
+    Twelve bridges translate protocol-specific actions (MCP tools, ROS 2 topics, MAVLink commands, OPC UA writes, etc.) into a unified policy evaluation format.
+  </Step>
+</Steps>
+
+## Cross-system policies
+
+The Protocol's differentiating feature is **cross-system policies** — invariants that span multiple transport bridges simultaneously.
+
+| Policy | Active when | Denies | Why |
+|---|---|---|---|
+| `no-fs-while-moving` | `robot.moving` | File writes, edits | Prevents controller corruption during motion |
+| `no-exec-while-moving` | `robot.moving` | Shell execution | Prevents control-loop interference |
+| `no-deploy-while-active` | `cmd_vel` | Deploys, restarts | Can't restart while velocity commands are active |
+| `no-network-while-armed` | `drone.armed` | Network, exec | Safety-critical — no external access while drone is armed |
+
+No single-protocol safety system can enforce these. The Protocol can because every bridge publishes state into the same gateway.
+
+## Example: voice command to deploy
+
+What happens when a user says "Jarvis, deploy the staging build":
+
+<Steps>
+  <Step title="Voice → text">
+    Qwen3.5-Omni or OpenClaw Voice Wake transcribes input to text.
+  </Step>
+  <Step title="Text → agent session">
+    OpenClaw gateway routes to the active SINT agent session.
+  </Step>
+  <Step title="Agent → tool call">
+    Agent decides: `exec("railway up --environment staging")`.
+  </Step>
+  <Step title="Tier classification">
+    `@sint/openclaw-adapter` classifies the tool call as T2 (deploy action).
+  </Step>
+  <Step title="Cross-system check">
+    Is `robot.moving` active? No → continue. Is `drone.armed` active? No → continue.
+  </Step>
+  <Step title="Policy Gateway">
+    Token scope check passes. Rate limit passes. Physical constraint not applicable. Decision: ALLOW.
+  </Step>
+  <Step title="Evidence Ledger">
+    SHA-256 entry written with prevHash linkage. TEE signature if configured.
+  </Step>
+  <Step title="OpenClaw executes">
+    The shell command runs. Output captured.
+  </Step>
+  <Step title="Result → Conversation Compiler">
+    Agent output rewritten for natural speech: "Staging deploy is live."
+  </Step>
+  <Step title="Avatar reacts">
+    Smile expression, head-nod animation, status widget ("Staging" → success, 3s).
+  </Step>
+  <Step title="Evidence HUD">
+    New entry appears in real-time feed.
+  </Step>
+</Steps>
+
+## Example: voice command to move a robot
+
+"Jarvis, move the robot two meters forward":
+
+<Steps>
+  <Step title="Voice → agent → tool call">
+    Agent proposes `nodes.invoke("move_forward", distance=2)`.
+  </Step>
+  <Step title="Tier classification">
+    T3 — physical, irreversible in the sense that a collision cannot be undone.
+  </Step>
+  <Step title="Cross-system check">
+    All clear.
+  </Step>
+  <Step title="Policy Gateway → escalate">
+    T3 requires human approval. `approvalId = "apr-456"` is queued.
+  </Step>
+  <Step title="Avatar reacts">
+    Surprised expression, thinking animation, action widget ("Approve 2m forward?", 30s timeout).
+  </Step>
+  <Step title="Human approves">
+    One click on the widget. Gateway resolves approval.
+  </Step>
+  <Step title="Node action executes">
+    Robot moves 2m forward. StateTracker activates `robot.moving`.
+  </Step>
+  <Step title="During motion">
+    File writes, shell execution, and deploys are automatically denied by cross-system policies.
+  </Step>
+  <Step title="Motion complete">
+    `robot.moving` deactivates. Evidence ledger: full chain from request → approval → execution → completion.
+  </Step>
+</Steps>
+
+## Where to read more
+
+<CardGroup cols={2}>
+  <Card title="SINT Protocol overview" icon="shield" href="/protocol/overview">
+    Detailed treatment of the Protocol layer.
+  </Card>
+  <Card title="SINT OS guide" icon="cube" href="/products/os">
+    How the products integrate through os-core.
+  </Card>
+  <Card title="Tiers and escalation" icon="layer-group" href="/protocol/tiers">
+    T0–T3 and the Δ-factor escalation function.
+  </Card>
+  <Card title="Bridges" icon="network-wired" href="/protocol/bridges">
+    All twelve transport bridges, per-resource state machines, profiles.
+  </Card>
+</CardGroup>

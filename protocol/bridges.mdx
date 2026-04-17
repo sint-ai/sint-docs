@@ -1,0 +1,117 @@
+---
+title: "Bridges"
+description: "Twelve transport bridges. Every surface where AI agents act."
+---
+
+A **bridge** translates a protocol-specific action (MCP tool call, ROS 2 topic publish, MAVLink command, OPC UA write, etc.) into a unified policy evaluation format. SINT ships twelve.
+
+## Per-resource state machine
+
+Every bridge runs a per-resource state machine for each topic, service, action, or tool it mediates.
+
+```
+UNREGISTERED → PENDING_AUTH → AUTHORIZED → ACTIVE → SUSPENDED
+     ↑              ↓              ↓          ↓         ↓
+     └──────────────┴──────────────┴──────────┴─────────┘
+                   (re-authorization flow)
+```
+
+A resource cannot carry data in the `SUSPENDED` state. Re-authorization requires a fresh token bound to the current session. This allows **real-time revocation without a restart**.
+
+## The twelve bridges
+
+<CardGroup cols={2}>
+  <Card title="bridge-mcp" icon="plug">
+    **MCP tool calls** with risk classification. Security-enforcing proxy that sits between an AI agent and any number of downstream MCP servers.
+  </Card>
+  <Card title="bridge-ros2" icon="robot">
+    **ROS 2 topics, services, actions** with physics extraction. Maps velocity, force, and position to SintCapabilityToken constraints.
+  </Card>
+  <Card title="bridge-a2a" icon="handshake">
+    **Google A2A Protocol** bridge for multi-agent coordination.
+  </Card>
+  <Card title="bridge-iot" icon="microchip">
+    **Generic MQTT/CoAP** edge IoT bridge with gateway session interception.
+  </Card>
+  <Card title="bridge-mqtt-sparkplug" icon="industry">
+    **MQTT Sparkplug** profile with industrial command-tiering defaults.
+  </Card>
+  <Card title="bridge-opcua" icon="gears">
+    **OPC UA** node and method mapping with safety-critical write/call promotion.
+  </Card>
+  <Card title="bridge-open-rmf" icon="warehouse">
+    **Open-RMF** fleet and facility mapping for warehouse dispatch workflows.
+  </Card>
+  <Card title="bridge-grpc" icon="code">
+    **gRPC** service and method profile mapping with default tier assignment.
+  </Card>
+  <Card title="bridge-mavlink" icon="plane">
+    **MAVLink** drone and UAV command bridge. Armed-state cross-system policy integration.
+  </Card>
+  <Card title="bridge-swarm" icon="circle-nodes">
+    **SwarmCoordinator** for multi-robot collective constraints.
+  </Card>
+  <Card title="bridge-economy" icon="dollar-sign">
+    **Economy** bridge with balance, budget, trust, and billing ports. Cost-aware routing.
+  </Card>
+  <Card title="bridge-hal" icon="server">
+    **Hardware Abstraction Layer** — auto-detect hardware, select deployment profile.
+  </Card>
+</CardGroup>
+
+## Bridge anatomy
+
+Every bridge implements the same interface:
+
+```typescript
+interface Bridge {
+  // Discover resources this bridge mediates
+  discover(): Promise<Resource[]>;
+
+  // Convert a transport-specific action to a SintRequest
+  translate(rawAction: unknown): Promise<SintRequest>;
+
+  // Enforce the Policy Gateway's decision
+  enforce(decision: PolicyDecision, action: unknown): Promise<EnforcementResult>;
+
+  // Per-resource state machine for each mediated endpoint
+  getStateMachine(resource: string): ResourceStateMachine;
+}
+```
+
+This uniformity is what enables cross-system policies — the gateway sees every bridge's traffic in the same shape.
+
+## Cross-system policies
+
+See [architecture](/architecture) for the mechanics of cross-system policies. Canonical examples:
+
+| Policy | When active | Denies |
+|---|---|---|
+| `no-fs-while-moving` | `robot.moving` (from bridge-ros2) | File writes via bridge-mcp |
+| `no-deploy-while-active` | `cmd_vel` active (from bridge-ros2) | Deploys via bridge-mcp |
+| `no-network-while-armed` | `drone.armed` (from bridge-mavlink) | Network calls via bridge-mcp |
+| `no-reboot-during-surgery` | `patient.connected` (from a custom bridge) | System reboot via bridge-mcp |
+
+## Writing a new bridge
+
+<Steps>
+  <Step title="Implement the Bridge interface">
+    Create `packages/bridge-yourprotocol/` with a class implementing `discover`, `translate`, `enforce`, and `getStateMachine`.
+  </Step>
+  <Step title="Define the resource schema">
+    Map your protocol's identifiers to SINT resource URIs. E.g. `opcua://node/ns=2;i=1234`.
+  </Step>
+  <Step title="Add tier defaults">
+    Provide a default tier map — which operations in your protocol are T0/T1/T2/T3 by default.
+  </Step>
+  <Step title="Add conformance tests">
+    Every bridge needs a conformance-test suite in `packages/conformance-tests/`. See [conformance](/protocol/conformance).
+  </Step>
+  <Step title="Document in docs.sint.gg">
+    Add your bridge to this page and a dedicated sub-page at `protocol/bridges/yourprotocol`.
+  </Step>
+</Steps>
+
+<Tip>
+  Community bridges live in `sint-ai/sint-bridges-community`. If your bridge is generally useful, open a PR to upstream it into the main repo.
+</Tip>

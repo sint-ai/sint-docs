@@ -1,0 +1,93 @@
+---
+title: "Whitepaper"
+description: "SINT Protocol v0.2 — formal specification, threat model, evaluation framework, compliance mappings."
+---
+
+<Note>
+  **This is the canonical whitepaper as of April 2026.** The full academic version is maintained in the repo at [github.com/sint-ai/sint-protocol/blob/main/WHITEPAPER.md](https://github.com/sint-ai/sint-protocol/blob/main/WHITEPAPER.md). The arXiv preprint is under submission (cs.CR primary, cs.RO / cs.AI / cs.MA cross-list). The March 2025 "SINT Agentic Platform" whitepaper is archived at [/archive/2025-whitepaper](/archive/2025-whitepaper).
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Read in GitHub" icon="github" href="https://github.com/sint-ai/sint-protocol/blob/main/WHITEPAPER.md">
+    The canonical Markdown version with full bibliography and citation metadata.
+  </Card>
+  <Card title="arXiv preprint" icon="file-pdf" href="https://arxiv.org/">
+    Academic version with LaTeX typesetting. Under submission as of April 2026.
+  </Card>
+</CardGroup>
+
+## Abstract
+
+Foundation-model AI agents now perceive, reason, and physically actuate. Coinbase's Agentic Wallets (February 2026) gave them money; ERC-8004 gave them portable on-chain identity; OWASP's Top 10 for Agentic Applications (December 2025) catalogued how they fail; the EU AI Act's high-risk provisions take effect August 2, 2026. None of these infrastructures addresses the full stack of a physical-AI agent — the combined cognition, identity, authorization, actuation, and audit surface that spans software and the physical world.
+
+This paper presents **SINT (Secure Infrastructure for Non-human Transactions)**, a protocol that formalizes physical-AI agents as *governed entities* possessing typed identity, graduated capability rights, and an immutable civic record.
+
+## Contributions
+
+SINT contributes:
+
+1. A formal `SintCapabilityToken` schema with a physical-constraints block, cryptographically bound to a W3C DID and a TEE attestation.
+2. A twelve-state deterministic finite automaton governing the full agent authorization lifecycle, mapped to ROS 2 action primitives.
+3. A four-tier human oversight model with a provable max-escalation function driven by human-presence, environmental, novelty, and composite-safety signals.
+4. A STRIDE-extended threat model — STRIDE+B — whose seventh class formalizes *behavioral non-determinism* across foundation-model backends.
+5. A seven-benchmark evaluation framework with per-tier latency budgets and a 157-test conformance suite.
+6. Compliance mappings to IEC 62443, EU AI Act Article 13, and NIST AI RMF.
+
+We situate SINT as the security substrate that ROSClaw's executive-layer contract C = ⟨A, O, V, L⟩ explicitly scopes out, complementary to SAGA's inter-agent trust layer, and grounded in the empirical pattern that identical commands issued across frontier model backends produce a 3.4× spread in prompt-level out-of-policy attempt rates.
+
+## Core sections
+
+<CardGroup cols={2}>
+  <Card title="Formal specification" icon="book" href="/protocol/spec">
+    The normative SintCapabilityToken schema, wire messages, and DFA state transitions.
+  </Card>
+  <Card title="Tier model" icon="layer-group" href="/protocol/tiers">
+    T0–T3 with the max-escalation function and Δ factors.
+  </Card>
+  <Card title="CSML" icon="chart-line" href="/protocol/csml">
+    The Composite Safety-Model-Ledger score, calibrated against ROSClaw data.
+  </Card>
+  <Card title="Threat model" icon="skull" href="/protocol/threat-model">
+    STRIDE+B with worked attack chains for UniPwn and MCP goal hijack.
+  </Card>
+  <Card title="Invariants" icon="shield-check" href="/protocol/invariants">
+    Safety, liveness, non-repudiation, tamper-evidence proofs.
+  </Card>
+  <Card title="Compliance" icon="clipboard-check" href="/protocol/compliance">
+    IEC 62443 / EU AI Act / NIST AI RMF mappings.
+  </Card>
+</CardGroup>
+
+## Download
+
+<CardGroup cols={3}>
+  <Card title="Markdown" icon="file-lines" href="https://github.com/sint-ai/sint-protocol/raw/main/WHITEPAPER.md">
+    Raw source on GitHub.
+  </Card>
+  <Card title="PDF" icon="file-pdf" href="https://github.com/sint-ai/sint-protocol/releases">
+    Released alongside each protocol version tag.
+  </Card>
+  <Card title="BibTeX" icon="quote-left" href="https://github.com/sint-ai/sint-protocol/blob/main/docs/CITATION.bib">
+    For academic citation.
+  </Card>
+</CardGroup>
+
+## Citing SINT
+
+```bibtex
+@techreport{sint_protocol_2026,
+  title        = {{SINT}: A Formal Security Protocol for Governed Physical-{AI} Agents},
+  author       = {Pashkov, Illia and {SINT Labs}},
+  institution  = {SINT Labs},
+  year         = {2026},
+  month        = {April},
+  note         = {v0.2. Open specification (CC BY 4.0), reference implementation (Apache-2.0).},
+  url          = {https://github.com/sint-ai/sint-protocol}
+}
+```
+
+When the arXiv preprint is public, replace the citation with the arXiv BibTeX entry (same key). Watch the [facts page](/facts) for updates.
+
+<Tip>
+  **Implementing SINT from the paper?** Also read the [protocol spec](/protocol/spec) and the [conformance suite](/protocol/conformance). The spec is the normative artifact; the whitepaper is the explanatory one.
+</Tip>

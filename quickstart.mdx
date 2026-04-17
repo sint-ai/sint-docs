@@ -1,85 +1,174 @@
 ---
 title: "Quickstart"
-description: "Pick the path that matches what you're trying to do."
+description: "Run SINT Protocol locally in under five minutes."
 ---
 
-# Quickstart
+Clone the repo, install dependencies, boot the stack. Docker Compose runs the gateway, dashboard, Postgres, and Redis. Node.js 22+ and pnpm 9+ required.
 
-There's no single quickstart for SINT because there's no single thing to do with it. Pick the path.
+## Prerequisites
 
-## I want to run the Protocol locally
+<Steps>
+  <Step title="Install Node.js 22+">
+    ```bash
+    node --version   # v22.0.0 or higher
+    ```
+  </Step>
+  <Step title="Install pnpm 9+">
+    ```bash
+    npm install -g pnpm
+    pnpm --version   # 9.0.0 or higher
+    ```
+  </Step>
+  <Step title="Install Docker (optional, for full stack)">
+    Docker Desktop or Docker Engine with Docker Compose v2.
+  </Step>
+</Steps>
 
-The fastest way to see the safety envelope in action.
+## Clone and install
 
 ```bash
-# Prerequisites: Node.js >= 22, pnpm >= 9
-git clone https://github.com/sint-ai/sint-protocol
+git clone https://github.com/sint-ai/sint-protocol.git
 cd sint-protocol
+
 pnpm install
 pnpm run build
-pnpm run test                  # full workspace test suite
-
-# Start the Policy Gateway
-pnpm --filter @sint/gateway-server dev
-#   → http://localhost:3100/v1/health
-#   → http://localhost:3100/v1/ready
-#   → http://localhost:3100/v1/docs
-
-# Or start the full stack: Gateway + Interface + Postgres + Redis
-pnpm run stack:interface
-#   → http://localhost:3202
+pnpm run test           # 1,772 tests, takes ~2 minutes
 ```
 
-Other stack profiles for specific scenarios:
+## Option A — Full stack with Docker
 
 ```bash
-pnpm run stack:dev                       # local dev with hot-reload
-pnpm run stack:edge                      # edge-deployable profile
-pnpm run stack:prod-lite                 # production-shape, single host
-pnpm run stack:gazebo-validation         # robotics simulation harness
-pnpm run stack:isaac-sim-validation      # NVIDIA Isaac Sim integration
+docker-compose up
+
+# Gateway:     http://localhost:3100
+# Dashboard:   http://localhost:3201
+# Postgres:    localhost:5432
+# Redis:       localhost:6379
 ```
 
-Continue at [Protocol Quickstart](/protocol/quickstart) for a guided tour.
+Once the services are running, hit the health check:
 
-## I want to build an Operator on the Protocol
-
-Read these in order:
-
-1. [Operators overview](/operators/overview)
-2. [Anatomy of an Operator](/operators/anatomy)
-3. [Safety envelope](/operators/safety-envelope)
-4. [Pipelines YAML spec](/platform/pipelines/yaml-spec)
-5. One concrete example — pick the closest: [Revenue](/operators/revenue), [Documents](/operators/documents), [Voice](/operators/voice), [Onboarding](/operators/onboarding), [CMO](/operators/cmo), [Inbox](/operators/inbox)
-
-## I want to embed Face in my own app
-
-```html
-<script src="https://face.sint.gg/embed.js" async></script>
-<sint-face
-  agent-endpoint="https://your-agent.example.com"
-  voice="alloy"
-  policy-gateway="https://gate.sint.gg"
-></sint-face>
+```bash
+curl http://localhost:3100/v1/health
+# → {"status":"ok","version":"0.2.0"}
 ```
 
-Continue at [Face embed guide](/face/embed).
+## Option B — Gateway only (in-memory)
 
-## I want SINT Labs to build an Operator for my company
+Fastest path for exploration. No Docker required.
 
-You're in the wrong place; you want **[sint.gg/contact](https://sint.gg/contact)**. Two-week fixed-fee Audit, then Build, then Operate. See [sint.gg/agency](https://sint.gg/agency) for engagement and pricing.
+```bash
+pnpm --filter @sint/gateway-server dev
+# → http://localhost:3100/v1/health
+# → http://localhost:3100/v1/ready
+# → http://localhost:3100/v1/docs
+```
 
-## I want to read the research
+The gateway runs with an in-memory ledger and in-memory revocation store. Data does not persist across restarts — fine for development, not for production.
 
-- **[ROSClaw](/research/rosclaw)** — empirical safety analysis of LLM-controlled physical AI. IROS 2026 submission. arXiv:2603.26997.
-- **[MCP Security Analysis](/research/mcp-security)** — architectural review of the Model Context Protocol. arXiv:2601.17549.
+## Your first intercept
 
-## I'm here from an old SINT link
+Once the gateway is up, issue a capability token and intercept a request.
 
-Welcome. The company pivoted in early 2026. The short version: [/origin](/origin).
+<Steps>
+  <Step title="Issue a capability token">
+    ```bash
+    curl -X POST http://localhost:3100/v1/tokens \
+      -H "Content-Type: application/json" \
+      -d '{
+        "agentId": "did:key:z6MkExample",
+        "scope": {
+          "resources": ["ros2:///cmd_vel"],
+          "actions":   ["publish"]
+        },
+        "physicalConstraints": {
+          "maxLinearVelocity_ms": 1.0
+        },
+        "expiresIn": 3600
+      }'
+    # → {"tokenId":"tok_01HPX...","token":"ey..."}
+    ```
+  </Step>
+  <Step title="Intercept a request">
+    ```bash
+    curl -X POST http://localhost:3100/v1/intercept \
+      -H "Content-Type: application/json" \
+      -d '{
+        "tokenRef":  "tok_01HPX...",
+        "agentId":   "did:key:z6MkExample",
+        "resource":  "ros2:///cmd_vel",
+        "action":    "publish",
+        "physicalContext": {
+          "estimatedVelocity_ms": 0.8,
+          "nearbyHumans":         false,
+          "environmentClass":     "indoor_structured"
+        }
+      }'
+    # → {
+    #     "decision":   "ALLOW",
+    #     "tier":       "T1",
+    #     "ledgerHash": "sha256:a3f...",
+    #     "budget_ms":  2000
+    #   }
+    ```
+  </Step>
+  <Step title="Inspect the ledger">
+    ```bash
+    curl http://localhost:3100/v1/ledger?limit=10
+    # → [{
+    #     "eventType":   "POLICY_ALLOW",
+    #     "tier":        "T1",
+    #     "requestRef":  "req_01HPX...",
+    #     "prevHash":    "sha256:...",
+    #     "eventHash":   "sha256:a3f...",
+    #     "timestamp":   "2026-04-17T02:40:12.123Z"
+    #   }, ...]
+    ```
+  </Step>
+  <Step title="Verify the hash chain">
+    ```bash
+    curl -X POST http://localhost:3100/v1/ledger/verify \
+      -H "Content-Type: application/json" \
+      -d '{"from": 0, "to": 10}'
+    # → {"valid": true, "verifiedAt": "..."}
+    ```
+  </Step>
+</Steps>
 
-## I want to contribute
+## Next steps
 
-- **Protocol issues, PRs, discussions:** [github.com/sint-ai/sint-protocol](https://github.com/sint-ai/sint-protocol). Read [`AGENTS.md`](https://github.com/sint-ai/sint-protocol/blob/main/AGENTS.md) and [`CONTRIBUTING.md`](https://github.com/sint-ai/sint-protocol/blob/main/CONTRIBUTING.md) first. The five [invariants](/protocol/invariants/overview) are non-negotiable.
-- **Docs PRs:** the "Suggest edit" link at the bottom of any page on this site.
-- **Research collaboration:** illia@sint.gg.
+<CardGroup cols={2}>
+  <Card title="Explore the tiers" icon="layer-group" href="/protocol/tiers">
+    Learn how T0–T3 tier assignment and Δ-factor escalation work.
+  </Card>
+  <Card title="Wire up MCP" icon="plug" href="/protocol/bridges">
+    Put SINT in front of any MCP server as a security-enforcing proxy.
+  </Card>
+  <Card title="Wire up ROS 2" icon="robot" href="/protocol/bridges">
+    Intercept topics, services, and actions with physics-aware policy.
+  </Card>
+  <Card title="Deploy to production" icon="server" href="/developers/deployment">
+    Railway, Docker Compose, Kubernetes recipes.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="pnpm install fails with ERR_PNPM_UNSUPPORTED_ENGINE">
+    You're on an older Node version. Upgrade to Node 22 or higher via nvm: `nvm install 22 && nvm use 22`.
+  </Accordion>
+  <Accordion title="Gateway starts but /v1/health returns 503">
+    The gateway is up but the ledger or revocation store hasn't finished initializing. Wait 5–10 seconds. If it persists, check logs for database connection errors.
+  </Accordion>
+  <Accordion title="docker-compose fails with port 3100 in use">
+    Another process is holding port 3100. Either stop it or set `SINT_GATEWAY_PORT=3101` in `.env` and update the docker-compose port mapping.
+  </Accordion>
+  <Accordion title="Tests fail with 'Module not found @sint/core'">
+    Run `pnpm run build` before `pnpm test`. The workspace needs to build packages once before tests can resolve them.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  More questions? Join the community on [Discord](https://discord.gg/cYyeqVQ5j4) or open a [GitHub Discussion](https://github.com/sint-ai/sint-protocol/discussions).
+</Tip>

@@ -1,0 +1,86 @@
+---
+title: "Security policy"
+description: "Responsible disclosure. How to report vulnerabilities in SINT Protocol or products."
+---
+
+SINT Labs takes security seriously. The protocol we build *is* a security protocol — we hold ourselves to a higher bar than most.
+
+## Reporting a vulnerability
+
+**Do not** open a public GitHub issue for security vulnerabilities.
+
+Email **security@sint.gg** with:
+
+- A clear description of the vulnerability
+- Reproduction steps
+- Affected versions
+- Suggested severity (your best guess; we'll reassess)
+- Your contact information for follow-up
+
+You can encrypt your email using our [PGP key](https://sint.gg/security/pgp.asc) — fingerprint: `<TBD, to be published>`.
+
+## What happens next
+
+<Steps>
+  <Step title="Acknowledgment (within 72 hours)">
+    We respond acknowledging receipt.
+  </Step>
+  <Step title="Triage (within 7 days)">
+    We confirm the vulnerability, assess severity, and open a private tracking issue.
+  </Step>
+  <Step title="Fix development (timeline depends on severity)">
+    Critical vulnerabilities target a fix within 14 days. Lower severities follow standard release cadence.
+  </Step>
+  <Step title="Coordinated disclosure">
+    We coordinate the public disclosure timing with you. Typically 30–90 days post-fix.
+  </Step>
+  <Step title="Credit">
+    Unless you request anonymity, we credit you in the security advisory.
+  </Step>
+</Steps>
+
+## Scope
+
+In scope for responsible disclosure:
+
+- `sint-ai/sint-protocol` — protocol gateway, tokens, ledger, bridges
+- `sint-ai/sint-avatars` — avatar rendering and voice pipeline
+- `sint-ai/sint-agents` (Console) — operator console
+- `sint-ai/sint-outreach` (Operators) — production agentic loops
+- `sint-ai/sint-cmo-operator` — content pipeline
+- `docs.sint.gg` and `sint.gg` — websites
+
+Out of scope:
+
+- Third-party dependencies (report to the dependency author, CC us if it affects SINT deployments)
+- Social engineering attacks against SINT Labs personnel
+- Physical attacks on SINT infrastructure
+- DoS attacks that require overwhelming bandwidth
+- Outdated forks or modifications of our repos
+
+## Severity
+
+We use CVSS 3.1. Typical mappings:
+
+| Severity | CVSS range | Target fix window |
+|---|---|---|
+| Critical | 9.0–10.0 | 14 days |
+| High | 7.0–8.9 | 30 days |
+| Medium | 4.0–6.9 | 90 days |
+| Low | 0.1–3.9 | Next release |
+
+## Hall of fame
+
+Security researchers who have responsibly disclosed vulnerabilities are listed at [docs.sint.gg/security/acknowledgments](https://docs.sint.gg/security/acknowledgments) (to be created when we have our first).
+
+## Bug bounty
+
+We do not currently operate a formal bug bounty program. We do reward significant disclosures case-by-case. Email security@sint.gg for details on a specific finding.
+
+## Do not
+
+- Test vulnerabilities on production SINT Labs infrastructure without coordinating with us
+- Access, modify, or exfiltrate customer data
+- Publicize a vulnerability before coordinated disclosure is complete
+
+Researchers who follow this policy in good faith will not face legal action from SINT Labs.

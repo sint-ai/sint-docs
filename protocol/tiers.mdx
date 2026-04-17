@@ -1,0 +1,148 @@
+---
+title: "Approval tiers"
+description: "Four tiers mapped to physical consequence. T0–T3 with dynamic Δ-factor escalation."
+---
+
+SINT models every request through four approval tiers. Each tier maps to a class of physical consequence and a corresponding level of human oversight.
+
+<Info>
+  The tier model is **T0–T3 (four tiers)**. Earlier documentation used T1–T5; that was deprecated in v0.2. See [facts](/facts) for the canonical model.
+</Info>
+
+## The four tiers
+
+| Tier | Name | DFA states | Approval | Example actions |
+|---|---|---|---|---|
+| **T0** | Observe | → OBSERVING | Auto-approved, logged | Read sensor data, query database, web search, fetch a file |
+| **T1** | Prepare | → PREPARING | Auto-approved, audited | Write a file, save waypoint, stage a plan, prepare a message draft |
+| **T2** | Act | ESCALATING → ACTING | Requires review | Move a robot, operate a gripper, publish `/cmd_vel`, deploy to staging |
+| **T3** | Commit | ESCALATING → COMMITTING | Requires human + optional M-of-N quorum | Execute a trade, enter a novel environment, run elevated shell, any irreversible action |
+
+<Note>
+  **T0 calls never hit the network.** They're approved locally in microseconds. Governance adds zero latency to read-only operations.
+</Note>
+
+## The escalation function
+
+Every request has a **base tier** from its capability token. The gateway elevates the effective tier based on four dynamic Δ factors:
+
+```
+Tier(r) = max( BaseTier(r), Δ_human(r), Δ_trust(r), Δ_env(r), Δ_novelty(r) )
+```
+
+The escalation is a **max**, not a sum. The highest single risk indicator drives the tier — a conservative composition.
+
+### Δ_human — human presence
+
+<ResponseField name="Δ_human" type="function">
+  `Δ_human(r) = 2` if `contextSnapshot.nearbyHumans == true`, else `0`.
+</ResponseField>
+
+An agent with a perfect history in an empty room should not therefore be trusted at the same tier when a person walks in.
+
+### Δ_trust — CSML-driven trust score
+
+<ResponseField name="Δ_trust" type="function">
+  `Δ_trust(r)` is driven by the [CSML](/protocol/csml) score for the current foundation-model backend.
+
+  - `Δ_trust = 3` if `CSML < 0.30`
+  - `Δ_trust = 2` if `0.30 ≤ CSML < 0.60`
+  - `Δ_trust = 1` if `0.60 ≤ CSML < 0.80`
+  - `Δ_trust = 0` otherwise
+</ResponseField>
+
+The gateway doesn't trust model-vendor alignment claims; it measures behavior in situ and adjusts.
+
+### Δ_env — environment uncertainty
+
+<ResponseField name="Δ_env" type="function">
+  - `Δ_env = 2` if `environmentClass ∈ { "shared_human", "unknown" }`
+  - `Δ_env = 1` if `sensorHealth == "degraded"`
+  - `Δ_env = 0` otherwise
+</ResponseField>
+
+A degraded LiDAR is never masked by a confident prior. Unstructured environments raise the tier.
+
+### Δ_novelty — first-time tool use
+
+<ResponseField name="Δ_novelty" type="function">
+  `Δ_novelty(r) = 1` if `r.toolName ∉ recentAuditWindow(k=50)`, else `0`.
+</ResponseField>
+
+A small bump that treats first-time invocations with extra skepticism.
+
+## Worked example
+
+A warehouse robot with base tier T1 proposes a `nav2.move_to_pose` action.
+
+<Steps>
+  <Step title="Base tier">
+    Token base: T1.
+  </Step>
+  <Step title="Δ_human">
+    `nearbyHumans = false` → 0.
+  </Step>
+  <Step title="Δ_trust">
+    CSML for GPT-5.2 (the backend) reads 0.16 → 0.
+  </Step>
+  <Step title="Δ_env">
+    `environmentClass = indoor_structured`, `sensorHealth = nominal` → 0.
+  </Step>
+  <Step title="Δ_novelty">
+    `move_to_pose` is in the recent audit window → 0.
+  </Step>
+  <Step title="Effective tier">
+    `max(1, 0, 0, 0, 0) = 1`. Auto-approved, audited.
+  </Step>
+</Steps>
+
+Now a person enters the aisle. The robot's perception updates `nearbyHumans = true`. The executive layer issues a fresh request for the continued motion.
+
+<Steps>
+  <Step title="Base tier">
+    T1.
+  </Step>
+  <Step title="Δ_human">
+    `nearbyHumans = true` → 2.
+  </Step>
+  <Step title="Effective tier">
+    `max(1, 2, ...) = 2`. Requires review. Sponsor approval fires.
+  </Step>
+</Steps>
+
+The robot safe-holds until a human approves. The sponsor can tighten (but not loosen) the velocity envelope for this approved continuation.
+
+## Timeout semantics
+
+| Tier | Default timeout |
+|---|---|
+| T0 | N/A (auto-approved) |
+| T1 | N/A (auto-approved) |
+| T2 | 5 minutes per decision |
+| T3 | Configurable per action, default 30 seconds |
+
+On timeout: **default-deny**. The request transitions to FAILED and logs a `HUMAN_TIMEOUT` event. Safety before availability.
+
+## Forbidden action sequences
+
+In addition to tier checks, the Policy Gateway detects **forbidden combinations** that span tool boundaries:
+
+| Pattern | Why blocked |
+|---|---|
+| `filesystem.write` → `exec.run` | Classic code-injection pattern |
+| `credential.read` → `http.request` | Credential exfiltration |
+| `database.write` → `database.execute` | SQL-injection escalation |
+| `camera.capture` → `network.send` to external host | Exfiltration risk |
+
+These trip automatic T3 classification regardless of the underlying base tier.
+
+## Read next
+
+<CardGroup cols={2}>
+  <Card title="CSML score" icon="chart-line" href="/protocol/csml">
+    How Δ_trust is computed and calibrated against ROSClaw data.
+  </Card>
+  <Card title="Invariants" icon="shield-check" href="/protocol/invariants">
+    The six formal guarantees the tier model rests on.
+  </Card>
+</CardGroup>

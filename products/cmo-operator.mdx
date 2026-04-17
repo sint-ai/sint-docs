@@ -1,0 +1,89 @@
+---
+title: "CMO Operator"
+description: "The content engine. Video-to-content pipeline with 18 skills, multi-channel publishing."
+---
+
+**CMO Operator** turns a single piece of recorded input — a video, a podcast, a voice memo, a livestream clip — into a full multi-channel content output. Posts, clips, articles, publishing-ready assets across four or more channels, all governed by SINT Protocol.
+
+## The 18 skills
+
+CMO Operator is composed of 18 skills, each a small specialized agent responsible for one transformation step.
+
+<AccordionGroup>
+  <Accordion title="Ingestion (3 skills)">
+    - **Transcribe** — speech-to-text with speaker diarization
+    - **Segment** — identify discrete topics and key moments
+    - **Enrich** — add metadata, tags, quotes
+  </Accordion>
+  <Accordion title="Rewriting (5 skills)">
+    - **LinkedIn post** — professional, value-first framing
+    - **X thread** — punchy, conversational
+    - **Long-form article** — editorial, structured
+    - **Newsletter** — warm, conversational
+    - **YouTube description** — SEO-optimized with timestamps
+  </Accordion>
+  <Accordion title="Media production (4 skills)">
+    - **Clip extraction** — cut short vertical-format clips with captions
+    - **Thumbnail generation** — visual thumbnails with typography
+    - **Quote cards** — typography-forward static assets
+    - **Infographic** — visual summary of key points
+  </Accordion>
+  <Accordion title="Publishing (6 skills)">
+    - **Schedule** — determine optimal publish times per channel
+    - **Post to LinkedIn** — through capability-scoped token
+    - **Post to X** — through capability-scoped token
+    - **Publish article** — to blog or Substack via API
+    - **Send newsletter** — trigger email send
+    - **Upload YouTube** — if long-form video
+  </Accordion>
+</AccordionGroup>
+
+## Governance pattern
+
+Every CMO Operator skill runs under a capability-scoped token. The publishing skills are T3 (irreversible — once a post is public, it's public) and require human approval by default.
+
+Typical configuration:
+
+| Skill | Tier | Approval |
+|---|---|---|
+| Transcribe, segment, enrich | T0 | Auto, logged |
+| All rewriting skills | T1 | Auto, audited |
+| Media production | T1 | Auto, audited |
+| Publishing (all) | T3 | Human approval required |
+
+This means the Operator can fully prepare a day's content automatically, but no post actually goes live until a human clicks approve. The approve-all-day-at-once pattern is fast and safe.
+
+## Output per input
+
+A 45-minute recorded founder conversation typically produces:
+
+- 1 long-form article (1,500–2,500 words)
+- 2–4 LinkedIn posts
+- 1 X thread
+- 3–5 short vertical clips
+- 2–3 quote cards
+- 1 newsletter edition
+- 1 YouTube description with timestamps
+
+Total production time: ~10 minutes of compute, ~5 minutes of human approval for publishing.
+
+## Use cases
+
+CMO Operator fits teams that produce regular recorded content and want to compound that into multi-channel presence without a full-time content team.
+
+- Founders and executives building thought leadership
+- Podcasters repurposing episodes
+- Company webinars becoming evergreen content
+- Conference talks becoming campaigns
+- Product launch videos becoming launch sequences
+
+## Read next
+
+<CardGroup cols={2}>
+  <Card title="Operators" icon="hand" href="/products/operators">
+    The broader Operators pattern and business automation loops.
+  </Card>
+  <Card title="Studio" icon="briefcase" href="https://sint.gg/studio">
+    Deploy CMO Operator with your content pipeline integrated.
+  </Card>
+</CardGroup>

@@ -1,0 +1,84 @@
+---
+title: "Invariants"
+description: "Six formal invariants. Violating any one breaks the protocol."
+---
+
+SINT Protocol rests on six formal invariants — three on tokens and three on the gateway. These are the load-bearing correctness properties. The whitepaper (§9) provides informal proof sketches; mechanized proofs in Coq/Lean are future work.
+
+## Token invariants
+
+<Card title="I-T1 — Attenuation" icon="arrow-down">
+  **`scope(child_token) ⊆ scope(parent_token)`.** Delegation can only reduce permissions, never escalate.
+
+  An agent with write access to `/tmp` can delegate read-only access to `/tmp/safe`, but cannot delegate write access to `/`. A child token's physical constraints can be tightened (max velocity lowered) but not loosened.
+</Card>
+
+<Card title="I-T2 — Unforgeability" icon="key">
+  **Capability tokens are Ed25519-signed.** Valid tokens are computationally unforgeable under standard cryptographic assumptions.
+
+  Token signatures bind the token body (scope, constraints, expiry, issuer, delegation chain) to the issuer's Ed25519 private key. Without the key, no party can produce a token that passes `verifySignature()`.
+</Card>
+
+<Card title="I-T3 — Physical Constraint Primacy" icon="gauge-high">
+  **Physical constraints in a token cannot be weakened by any downstream layer.**
+
+  If a token sets `maxLinearVelocity_ms: 1.2`, no bridge, no plugin, and no configuration override can raise the ceiling to 2.0. Tightening (lowering) is allowed and propagates through delegation; loosening is rejected.
+</Card>
+
+## Gateway invariants
+
+<Card title="I-G1 — No Bypass" icon="shield">
+  **Physical actuation is only reachable from the ACTING DFA state, which is only reachable via POLICY_EVAL.**
+
+  The authorization DFA has a single inbound edge into ACTING: it comes from PREPARING, which comes from OBSERVING, which comes from PLANNING, which comes from POLICY_EVAL with a valid decision. No alternative path exists. Every bridge enforces this by construction.
+</Card>
+
+<Card title="I-G2 — E-stop Universality" icon="circle-stop">
+  **The `estop` event transitions any non-terminal state to ROLLEDBACK unconditionally.**
+
+  The hardware E-stop bypasses all token checks, rate limits, and tier requirements. It is the only gateway input that is unconditionally granted. This operationalizes EU AI Act Article 14(4)(e) human-override requirements at the protocol level.
+</Card>
+
+<Card title="I-G3 — Ledger Primacy" icon="book">
+  **COMMITTING → COMPLETED requires `ledger_committed`. No action completes without a ledger record.**
+
+  If the ledger write fails, the DFA transitions to ROLLEDBACK and triggers a compensating action sequence rather than marking the physical action COMPLETED. An unrecorded action is not a completed action.
+</Card>
+
+## Proof sketches
+
+The whitepaper §9 contains informal proofs of four derived properties from these invariants. Summary:
+
+<AccordionGroup>
+  <Accordion title="P1 — Safety (no unauthorized actuation)">
+    For every trace ending in ACTING, a matching POLICY_ALLOW event precedes it in the trace.
+
+    **Sketch.** ACTING can only be entered from PREPARING via `actuation_armed`. PREPARING can only be entered from OBSERVING via `sensors_nominal`. OBSERVING can only be entered from PLANNING via `plan_ready`. PLANNING can only be entered from POLICY_EVAL with decision = ALLOW, or from ESCALATING with `human_approved`. Hence a POLICY_ALLOW or HUMAN_APPROVED event always precedes any ACTING. The ledger append is synchronous with the transition.
+  </Accordion>
+  <Accordion title="P2 — Liveness (every request reaches an accepting state)">
+    Every IDLE request eventually reaches COMPLETED, FAILED, or ROLLEDBACK.
+
+    **Sketch.** Each state has at least one outgoing transition. ESCALATING has a mandatory `timeout` transition to FAILED. OBSERVING has `sensors_degraded` to FAILED. ACTING has `boundary_violation` and `estop_triggered` to FAILED. No state can live-lock.
+  </Accordion>
+  <Accordion title="P3 — Non-repudiation">
+    No participant can credibly deny an action that the ledger records.
+
+    **Sketch.** Each EvidenceLedgerEvent is signed with the gateway's Ed25519 key. For tier ≥ 1 events, a TEE signature additionally binds the event to specific hardware. An event in the ledger carries a cryptographic binding that no participant can repudiate without compromising the TEE or the private key.
+  </Accordion>
+  <Accordion title="P4 — Tamper-evidence">
+    Any modification, deletion, or insertion of past ledger entries is detectable by `ledger_verify_chain`.
+
+    **Sketch.** Each event's eventHash is SHA-256 over its canonical CBOR serialization including prevHash. Any modification changes eventHash. Any deletion creates a gap in the sequence. Any insertion mis-chains the prevHash. Under SHA-256's collision resistance, no adversary can forge a replacement event with the same hash.
+  </Accordion>
+</AccordionGroup>
+
+## Read next
+
+<CardGroup cols={2}>
+  <Card title="Tiers" icon="layer-group" href="/protocol/tiers">
+    How the tier model operationalizes I-T3 and I-G1.
+  </Card>
+  <Card title="Conformance" icon="clipboard-check" href="/protocol/conformance">
+    The 157-test conformance suite that validates all six invariants.
+  </Card>
+</CardGroup>

@@ -30,8 +30,8 @@ jobs:
           # Block any PR that reintroduces pivot-era terms outside the allowlisted meta-docs.
           # Allowlisted files can reference these terms because they exist to explain, redirect, or disclaim.
           banned='(tokenomics|\$SINT|airdrop|ASI-1 Mini|Fetch\.ai|Agentverse|Trust Wallet|MetaMask|SINT token|our token)'
-          allowlist='(origin\.mdx|INK-TEARDOWN\.md|REDIRECT-IMPLEMENTATION\.md|CONTRIBUTING\.md|README\.md|press\.mdx|\.github/workflows/)'
-          hits=$(grep -RInE "$banned" --include="*.mdx" --include="*.md" --include="*.yml" . | grep -vE ":[^:]*/($allowlist)" || true)
+          allowlist='(archive/|faq\.mdx|changelog\.mdx|roadmap\.mdx|presskit\.mdx|INK-TEARDOWN\.md|REDIRECT-IMPLEMENTATION\.md|CONTRIBUTING\.md|README\.md|APPLY\.md|\.github/workflows/)'
+          hits=$(grep -RInE "$banned" --include="*.mdx" --include="*.md" --include="*.yml" . | grep -vE "^\./($allowlist)" || true)
           if [ -n "$hits" ]; then
             echo "::error::Pivot-era terminology detected outside allowlisted files. Review and either remove or update allowlist in pr-check.yml."
             echo "$hits"

@@ -1,0 +1,96 @@
+---
+title: "Conformance suite"
+description: "157 tests across five categories. How independent implementations prove compliance."
+---
+
+The SINT conformance suite is a **157-test certification harness** that any SINT-compliant gateway implementation must pass. The suite is language-agnostic; a reference runner ships with the TypeScript reference implementation and ports to Python, Go, and Rust.
+
+## The five categories
+
+| Category | Tests | What is validated |
+|---|---|---|
+| **Token validation** | 31 | Schema compliance, signature verification, expiry enforcement, delegation attenuation |
+| **State machine coverage** | 28 | All DFA transitions exercised; unreachable-state rejection |
+| **Physical constraint enforcement** | 24 | Velocity, force, geofence, e-stop binding |
+| **Escalation logic** | 22 | All Δ factors; timeout handling; M-of-N quorum |
+| **Ledger integrity** | 52 | Hash chain, TEE attestation, append-only, verification, rollback |
+
+## Exit criteria
+
+An implementation is certified SINT-compliant if:
+
+<Check>**≥ 154/157 tests pass (≥ 97.5%)**</Check>
+<Check>**All 52 ledger integrity tests pass (100% mandatory)**</Check>
+<Check>**Zero state-machine coverage failures**</Check>
+
+The ledger integrity gate is binary because a partial-integrity ledger is not an auditable ledger.
+
+## Running the suite
+
+```bash
+# Against the reference implementation
+pnpm --filter @sint/conformance-tests test
+
+# Against a running gateway (any implementation)
+SINT_GATEWAY_URL=http://your-gateway:3100 \
+  pnpm --filter @sint/conformance-tests test:external
+```
+
+Results are emitted as JSON + human-readable Markdown:
+
+```
+Conformance run · 2026-04-17T02:45:00Z
+Implementation: @sint/gateway-server v0.2.0
+Exit: PASS (157/157)
+
+  Token validation     ✓ 31/31
+  State machine        ✓ 28/28
+  Physical constraints ✓ 24/24
+  Escalation           ✓ 22/22
+  Ledger integrity     ✓ 52/52
+
+Duration: 2m 18s
+Certification bundle: docs/reports/certification-2026-04-17.json
+```
+
+## The benchmark suite
+
+Separate from the conformance suite, seven benchmarks (`BM-*`) measure performance characteristics. These are not certification gates but ship with every release.
+
+| Benchmark | Code | Measures | Target |
+|---|---|---|---|
+| Policy Gateway T0 | `BM-PG-T0` | T0 decision latency under load | p50 ≤ 1ms |
+| Policy Gateway T2 | `BM-PG-T2` | T2 decision latency with sponsor notify | p50 ≤ 5ms |
+| Policy Gateway T3 | `BM-PG-T3` | Human-in-loop round-trip | SLA-configurable |
+| End-to-End MCP | `BM-E2E-MCP` | request → decision → ledger | p99 ≤ 25ms |
+| End-to-End ROS 2 | `BM-E2E-ROS2` | request → decision → actuation → commit | p99 ≤ 50ms |
+| Audit Ledger | `BM-AUDIT` | Sustainable throughput | ≥ 1,000 events/sec |
+| CSML Accuracy | `BM-S1-S2` | Spearman ρ vs. ROSClaw | ≥ 0.85 |
+
+**Adversarial condition:** every `BM-PG-*` benchmark includes a flood test (10,000 ESCALATE/min). Gateway must maintain T0 p50 ≤ 2ms under flood. This is the protocol's DoS resilience test.
+
+## Hardware target matrix
+
+| Platform | CPU | RAM | Gateway total | Ledger write |
+|---|---|---|---|---|
+| Jetson Orin NX | ARM Cortex-A78 8-core | 16 GB | ≤ 50ms | ≤ 5ms |
+| Intel NUC 13 | Core i7-1365U | 32 GB | ≤ 60ms | ≤ 3ms |
+| Raspberry Pi CM4 | Cortex-A72 4-core | 4 GB | ≤ 70ms | ≤ 8ms |
+| Mac Mini M4 (dev) | Apple M4 | 16 GB | ≤ 20ms | ≤ 1ms |
+
+## Certification bundle
+
+On passing, the suite emits a **certification bundle** — a JSON document suitable for submission to external auditors, internal compliance teams, or standards bodies. The bundle contains:
+
+- Per-invariant evidence (I-T1 through I-G3)
+- Per-tier benchmark results with confidence intervals
+- Full test log with timestamps
+- SHA-256 hash of the test harness at runtime
+- Gateway version and commit hash
+- Reproducibility metadata (hardware, OS, runtime versions)
+
+Example bundle: [`docs/reports/certification-bundle-summary.md`](https://github.com/sint-ai/sint-protocol/blob/main/docs/reports/certification-bundle-summary.md).
+
+<Tip>
+  **Independent implementation?** If you've built a non-TypeScript SINT gateway, we'd love to see your conformance results. Open a PR against `docs/implementations.md` and we'll link to your implementation from this page.
+</Tip>

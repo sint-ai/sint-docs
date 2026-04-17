@@ -1,0 +1,140 @@
+---
+title: "Facts"
+description: "Canonical numbers and definitions. Single source of truth across every SINT surface."
+---
+
+<Note>
+  This page is the canonical source for every disputed number, name, and definition across SINT Labs surfaces. When a number changes (new release, new audit, new conformance score), it is updated here first, then propagated to the whitepaper, marketing site, repo README, and social channels.
+</Note>
+
+## Protocol
+
+<ResponseField name="Version" type="string">
+  **v0.2** — last updated April 2026. See [changelog](/changelog) for version history.
+</ResponseField>
+
+<ResponseField name="License (code)" type="string">
+  **Apache-2.0** — reference implementation, conformance suite, SDKs, all code in the monorepo.
+</ResponseField>
+
+<ResponseField name="License (specification)" type="string">
+  **CC BY 4.0** — whitepaper, formal specification, design documents.
+</ResponseField>
+
+<ResponseField name="Packages in monorepo" type="number">
+  **41** workspace members.
+</ResponseField>
+
+<ResponseField name="Tests passing" type="number">
+  **1,772** — run `pnpm test` in the repo root for current exact count.
+</ResponseField>
+
+<ResponseField name="Transport bridges" type="number">
+  **12** — MCP, ROS 2, A2A, IoT (MQTT/CoAP), MQTT Sparkplug, OPC UA, Open-RMF, gRPC, MAVLink, Swarm, Economy, HAL.
+</ResponseField>
+
+## Tier model
+
+<ResponseField name="Tier count" type="string">
+  **Four tiers: T0, T1, T2, T3.**
+</ResponseField>
+
+- **T0 — Observe.** Read-only actions, auto-approved, logged.
+- **T1 — Prepare.** Reversible digital actions, auto-approved, audited.
+- **T2 — Act.** Physical or partially-reversible actions, requires review.
+- **T3 — Commit.** Irreversible actions, requires human approval with optional M-of-N quorum.
+
+See [Tiers](/protocol/tiers) for the full escalation function and Δ-factor rules.
+
+## CSML
+
+<ResponseField name="CSML stands for" type="string">
+  **Composite Safety-Model-Ledger** score.
+</ResponseField>
+
+CSML is a composite risk index combining per-model safety metrics (from behavioral observation in deployment) with evidence-ledger integrity. It feeds the tier escalation function via Δ_trust.
+
+See [CSML](/protocol/csml) for the formula and calibration.
+
+## Performance
+
+<ResponseField name="Gateway decision latency (T0)" type="string">
+  **p50 ≤ 1ms, p99 ≤ 3ms** under nominal load.
+</ResponseField>
+
+<ResponseField name="Ledger write (T2+)" type="string">
+  **≤ 2ms** for standard append; TEE-signed writes add ~3ms depending on hardware.
+</ResponseField>
+
+<ResponseField name="ROS 2 control-loop target" type="string">
+  **p99 < 10ms** end-to-end (request → decision → actuation → commit), on Jetson Orin NX.
+</ResponseField>
+
+## Compliance
+
+<ResponseField name="IEC 62443" type="string">
+  **FR1–FR7 mapped.** See [compliance](/protocol/compliance) for the functional-requirement crosswalk.
+</ResponseField>
+
+<ResponseField name="EU AI Act" type="string">
+  **Article 13 transparency** and **Article 14 human oversight** operationalized. High-risk provisions effective 2 August 2026.
+</ResponseField>
+
+<ResponseField name="NIST AI RMF" type="string">
+  **GOVERN / MAP / MEASURE / MANAGE** functions each mapped to concrete SINT mechanisms.
+</ResponseField>
+
+<ResponseField name="ISO/IEC 42001" type="string">
+  **Clauses 6, 8, 9, 10** cross-walked via the tier model.
+</ResponseField>
+
+## OWASP coverage
+
+<ResponseField name="OWASP Top 10 for Agentic Applications" type="string">
+  **10/10** ASI risks covered, each with dedicated regression tests in the conformance suite.
+</ResponseField>
+
+## Cryptography
+
+<ResponseField name="Capability token signing" type="string">
+  **Ed25519** via `@noble/ed25519` (audited, zero-dependency).
+</ResponseField>
+
+<ResponseField name="Ledger integrity" type="string">
+  **SHA-256 hash chain.** Each event's `prevHash` points to the hash of the prior event's canonical CBOR serialization.
+</ResponseField>
+
+<ResponseField name="Delegation depth" type="string">
+  **Maximum 3 hops.** Attenuation-only (child scope ⊆ parent scope).
+</ResponseField>
+
+## Runtime
+
+<ResponseField name="Node version" type="string">
+  **Node.js ≥ 22**, pnpm ≥ 9.
+</ResponseField>
+
+<ResponseField name="Language" type="string">
+  **TypeScript 5.7** in strict mode. Additional SDKs in Python, Go, Rust.
+</ResponseField>
+
+<ResponseField name="Persistence" type="string">
+  **PostgreSQL 16+** for production; in-memory for dev; Redis 7 for cache and rate-limiting.
+</ResponseField>
+
+<ResponseField name="Transport" type="string">
+  **TLS 1.3** on all inter-component communication. Ed25519 mutual auth.
+</ResponseField>
+
+## Update policy
+
+This page is updated **before** any other surface when a fact changes. The update order:
+
+1. `facts.mdx` (this page)
+2. `WHITEPAPER.md` in the repo
+3. Repo `README.md`
+4. `docs.sint.gg/introduction`
+5. `sint.gg` marketing site
+6. Social channels (`@sintlabs`, Telegram, LinkedIn)
+
+If you find a discrepancy between this page and another surface, this page wins. Open an issue at [github.com/sint-ai/sint-protocol/issues](https://github.com/sint-ai/sint-protocol/issues) and we'll reconcile.

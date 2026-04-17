@@ -1,0 +1,151 @@
+---
+title: "Deployment"
+description: "Production deployment recipes. Docker Compose, Kubernetes, Railway, managed."
+---
+
+SINT is designed for self-hosting. Typical deployments run the gateway, Postgres, Redis, and Console behind a reverse proxy.
+
+## Deployment shapes
+
+<CardGroup cols={2}>
+  <Card title="Single-node dev">
+    Docker Compose on your laptop. Gateway + in-memory ledger + Console. 5-minute setup.
+  </Card>
+  <Card title="Single-node prod">
+    Docker Compose on a small VM. Postgres + Redis + gateway + Console. Suitable for small teams and pilots.
+  </Card>
+  <Card title="Multi-node prod">
+    Kubernetes. Horizontally scaled gateways behind a load balancer, external Postgres, external Redis. Production SLA.
+  </Card>
+  <Card title="Managed (soon)">
+    SINT Labs runs the stack for you. Subscription. Contact [studio@sint.gg](mailto:studio@sint.gg).
+  </Card>
+</CardGroup>
+
+## Docker Compose (prod)
+
+```yaml
+version: "3.8"
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB:       sint
+      POSTGRES_USER:     sint
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+
+  gateway:
+    image: ghcr.io/sint-ai/sint-gateway:0.2
+    environment:
+      SINT_DB_URL:         postgresql://sint:${POSTGRES_PASSWORD}@postgres:5432/sint
+      SINT_REDIS_URL:      redis://:${REDIS_PASSWORD}@redis:6379
+      SINT_GATEWAY_KEY:    ${GATEWAY_ED25519_KEY}
+      SINT_TEE_ENABLED:    "true"
+    ports:
+      - "3100:3100"
+    depends_on:
+      - postgres
+      - redis
+
+  console:
+    image: ghcr.io/sint-ai/sint-console:0.2
+    environment:
+      VITE_GATEWAY_URL: https://gateway.your-domain.com
+    ports:
+      - "3201:3201"
+
+volumes:
+  postgres-data:
+```
+
+## Railway
+
+Railway is the fastest path to a hosted deployment.
+
+<Steps>
+  <Step title="Fork the repo">
+    Fork `sint-ai/sint-protocol` to your GitHub account.
+  </Step>
+  <Step title="Create a Railway project">
+    Connect your fork. Railway detects the `railway.json` and provisions gateway + Postgres + Redis.
+  </Step>
+  <Step title="Set environment variables">
+    `SINT_GATEWAY_KEY`, `POSTGRES_PASSWORD`, `REDIS_PASSWORD`.
+  </Step>
+  <Step title="Deploy">
+    Railway builds from the monorepo root. Takes ~4 minutes for a cold deploy.
+  </Step>
+</Steps>
+
+## Kubernetes
+
+Helm charts live in `deploy/helm/`. Install:
+
+```bash
+helm repo add sint https://charts.sint.gg
+helm install sint sint/sint-gateway \
+  --set postgresql.auth.password=$POSTGRES_PASSWORD \
+  --set redis.auth.password=$REDIS_PASSWORD \
+  --set gateway.signingKey=$GATEWAY_ED25519_KEY
+```
+
+## Key generation
+
+Before first deploy, generate the gateway's signing key:
+
+```bash
+pnpm --filter @sint/gateway-server keygen
+# → Writes SINT_GATEWAY_KEY to stdout
+# → Also registers the DID at did:sint:gateway:<fingerprint>
+```
+
+**Store this key securely.** If it's lost, every token issued by the gateway becomes unverifiable. Rotate only through the documented key-rotation procedure (see `docs/operations/key-rotation.md` in the repo).
+
+## TEE attestation (production)
+
+For production deployments on Intel SGX, AMD SEV-SNP, or AWS Nitro Enclaves, enable TEE-signed ledger writes:
+
+```bash
+SINT_TEE_ENABLED=true
+SINT_TEE_PROVIDER=intel-sgx  # or amd-sev-snp, aws-nitro
+```
+
+See `docs/operations/tee-setup.md` for provider-specific configuration.
+
+## Monitoring
+
+Gateway exposes Prometheus metrics at `/v1/metrics`. Recommended alerts:
+
+| Alert | Condition | Severity |
+|---|---|---|
+| High T0 latency | `histogram_quantile(0.99, intercept_latency{tier="T0"}) > 5ms` | Warning |
+| Ledger write failure | `rate(ledger_write_failures[5m]) > 0.001` | Critical |
+| Hash chain broken | `chain_verification_failures > 0` | Critical |
+| Approval SLA breach | `rate(approval_timeouts[5m]) > 0.01` | Warning |
+| CSML drift | `abs(csml_delta[1h]) > 0.15` | Info |
+
+Grafana dashboard JSON in `deploy/grafana/`.
+
+## Backup
+
+Evidence ledger entries are append-only and hash-chained. Recommended backup:
+
+- **Postgres:** daily logical backup, 30-day retention
+- **Ledger export:** hourly incremental export of new events to S3 with object-lock
+- **Key material:** encrypted backup of `SINT_GATEWAY_KEY` in a hardware vault
+
+Because the ledger is hash-chained, backup integrity is self-verifying. Restore runs `chain_verify` before accepting the restored state.
+
+## Upgrade
+
+In-place upgrades are supported within the same major version. See `CHANGELOG.md` and `docs/operations/upgrade-guide.md` for version-specific steps.
+
+## Managed deployment
+
+If you'd prefer not to operate the stack yourself, SINT Labs offers managed deployment via [Studio](https://sint.gg/studio). We operate the gateway, maintain key material, handle compliance attestation, and integrate with your existing observability.

@@ -1,0 +1,184 @@
+---
+title: "API reference"
+description: "All gateway endpoints. Request and response shapes for every operation."
+---
+
+<Note>
+  Full OpenAPI spec at `GET /v1/openapi.json`. This page is a human-readable overview.
+</Note>
+
+## Discovery and health
+
+### `GET /.well-known/sint.json`
+
+Protocol discovery endpoint.
+
+```json
+{
+  "protocolVersion": "0.2",
+  "endpoints": {
+    "intercept": "/v1/intercept",
+    "tokens":    "/v1/tokens",
+    "ledger":    "/v1/ledger"
+  },
+  "capabilities": ["mcp", "ros2", "mavlink", "..."]
+}
+```
+
+### `GET /v1/health`
+
+Returns 200 when the gateway can answer requests. Returns 503 during startup or if a critical dependency is unavailable.
+
+### `GET /v1/ready`
+
+Returns 200 only when the gateway has fully initialized (ledger connected, revocation store warm, bridges registered).
+
+## Tokens
+
+### `POST /v1/tokens`
+
+Issue a new capability token.
+
+```json
+POST /v1/tokens
+{
+  "agentDID": "did:key:z6Mk...",
+  "scope": {
+    "resources": ["ros2:///cmd_vel"],
+    "actions":   ["publish"]
+  },
+  "physicalConstraints": {
+    "maxLinearVelocity_ms": 1.0
+  },
+  "expiresIn": 3600
+}
+
+→ 201 Created
+{
+  "tokenId": "tok_01HPX...",
+  "token":   "ey...<JWT-like Ed25519-signed>",
+  "expiresAt": "2026-04-17T03:45:12Z"
+}
+```
+
+### `POST /v1/tokens/delegate`
+
+Attenuate an existing token. Child scope must be a subset of parent.
+
+### `POST /v1/tokens/revoke`
+
+Revoke a token. Takes effect within configured propagation window (default 5 seconds).
+
+## Intercept
+
+### `POST /v1/intercept`
+
+The primary policy evaluation endpoint.
+
+```json
+POST /v1/intercept
+{
+  "tokenRef": "tok_01HPX...",
+  "agentDID": "did:key:z6Mk...",
+  "resource": "ros2:///cmd_vel",
+  "action":   "publish",
+  "parameters": { "linear.x": 0.8 },
+  "contextSnapshot": {
+    "environmentClass":  "indoor_structured",
+    "nearbyHumans":      false,
+    "sensorHealth":      "nominal"
+  }
+}
+
+→ 200 OK
+{
+  "decisionId": "dec_01HPX...",
+  "decision":   "ALLOW",
+  "tier":       "T1",
+  "ledgerHash": "sha256:...",
+  "budget":     { "maxDuration_ms": 2000, "interruptible": true }
+}
+```
+
+Alternative decisions: `BLOCK`, `ESCALATE` (returns `approvalId`), `DEFER`.
+
+### `POST /v1/intercept/batch`
+
+Multi-request intercept. Returns 207 Multi-Status with per-request decisions.
+
+## Approvals
+
+### `GET /v1/approvals/pending`
+
+List pending approval requests for the caller's sponsor role.
+
+### `POST /v1/approvals/{approvalId}/resolve`
+
+Approve or deny a pending escalation.
+
+```json
+POST /v1/approvals/apr_01HPX.../resolve
+{
+  "decision": "approved",
+  "reason":   "Reviewed context; OK to proceed",
+  "quorumSignatures": [ /* M-of-N signatures if required */ ]
+}
+```
+
+### `GET /v1/approvals/events`
+
+Server-Sent Events stream for real-time approval events.
+
+### `GET /v1/approvals/ws`
+
+WebSocket equivalent for lower-latency operator UIs.
+
+## Ledger
+
+### `GET /v1/ledger`
+
+Query evidence ledger events.
+
+```
+GET /v1/ledger?from=0&limit=100&eventType=POLICY_ALLOW
+```
+
+### `POST /v1/ledger/verify`
+
+Verify hash-chain integrity over a range.
+
+```json
+POST /v1/ledger/verify
+{ "from": 0, "to": 1000 }
+
+→ { "valid": true, "verifiedAt": "..." }
+→ { "valid": false, "brokenAt": 847, "reason": "prevHash mismatch" }
+```
+
+## Metrics and compliance
+
+### `GET /v1/metrics`
+
+Prometheus metrics for the gateway.
+
+### `GET /v1/compliance/tier-crosswalk`
+
+Machine-readable compliance mapping (IEC 62443 / EU AI Act / NIST AI RMF / ISO 42001).
+
+## Authentication
+
+All endpoints require Ed25519-signed requests. Clients sign the canonicalized request body plus a timestamp nonce with their private key; the gateway verifies against the DID-resolved public key.
+
+The SDKs handle signing transparently. See [SDKs](/developers/sdks).
+
+## Rate limiting
+
+- Per-agentDID: 1,000 intercepts/minute default; configurable per deployment.
+- Per-sponsorDID: 60 approval resolves/minute.
+- Per-operatorDID: 100 Console writes/minute.
+
+Exceeding limits returns 429 Too Many Requests with a `Retry-After` header.
+
+## Versioning
+
+All endpoints are versioned at `/v1/`. Breaking changes increment the major version. See [changelog](/changelog) for version history.
