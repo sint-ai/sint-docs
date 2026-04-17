@@ -1,12 +1,7 @@
 {
-  "$schema": "https://mintlify.com/schema.json",
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
   "name": "SINT Labs",
-  "logo": {
-    "dark": "/logo/dark.svg",
-    "light": "/logo/light.svg",
-    "href": "https://sint.gg"
-  },
-  "favicon": "/favicon.svg",
   "colors": {
     "primary": "#00D9A3",
     "light": "#00D9A3",
@@ -16,200 +11,125 @@
       "light": "#FAFAF7"
     }
   },
-  "topbarLinks": [
-    {
-      "name": "GitHub",
-      "url": "https://github.com/sint-ai/sint-protocol"
-    },
-    {
-      "name": "sint.gg",
-      "url": "https://sint.gg"
-    }
-  ],
-  "topbarCtaButton": {
-    "name": "Whitepaper",
-    "url": "https://github.com/sint-ai/sint-protocol/blob/main/WHITEPAPER.md"
+  "favicon": "/favicon.svg",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg",
+    "href": "https://sint.gg"
   },
-  "tabs": [
-    {
-      "name": "Protocol",
-      "url": "protocol"
-    },
-    {
-      "name": "Products",
-      "url": "products"
-    },
-    {
-      "name": "Developers",
-      "url": "developers"
-    }
-  ],
-  "anchors": [
-    {
-      "name": "GitHub",
-      "icon": "github",
-      "url": "https://github.com/sint-ai"
-    },
-    {
-      "name": "Discord",
-      "icon": "discord",
-      "url": "https://discord.gg/cYyeqVQ5j4"
-    },
-    {
-      "name": "Changelog",
-      "icon": "list",
-      "url": "changelog"
-    }
-  ],
-  "navigation": [
-    {
-      "group": "Getting Started",
-      "pages": [
-        "introduction",
-        "quickstart",
-        "architecture",
-        "facts"
-      ]
-    },
-    {
-      "group": "Protocol",
-      "pages": [
-        "protocol/overview",
-        "protocol/whitepaper",
-        "protocol/spec",
-        "protocol/tiers",
-        "protocol/invariants",
-        "protocol/csml",
-        "protocol/bridges",
-        "protocol/compliance",
-        "protocol/threat-model",
-        "protocol/conformance"
-      ]
-    },
-    {
-      "group": "Products",
-      "pages": [
-        "products/overview",
-        "products/os",
-        "products/console",
-        "products/avatars",
-        "products/operators",
-        "products/cmo-operator"
-      ]
-    },
-    {
-      "group": "Developers",
-      "pages": [
-        "developers/quickstart",
-        "developers/sdks",
-        "developers/api-reference",
-        "developers/deployment",
-        "developers/contributing"
-      ]
-    },
-    {
-      "group": "Resources",
-      "pages": [
-        "roadmap",
-        "changelog",
-        "faq",
-        "presskit"
-      ]
-    },
-    {
-      "group": "Archive",
-      "pages": [
-        "archive/notice",
-        "archive/2025-whitepaper",
-        "archive/web3-platform",
-        "archive/partnerships"
-      ]
-    },
-    {
-      "group": "Legal",
-      "pages": [
-        "legal/licenses",
-        "legal/security",
-        "legal/privacy"
-      ]
-    }
-  ],
-  "footerSocials": {
-    "github": "https://github.com/sint-ai",
-    "x": "https://x.com/sintlabs",
-    "linkedin": "https://www.linkedin.com/company/sintlabs",
-    "discord": "https://discord.gg/cYyeqVQ5j4"
-  },
-  "footer": {
-    "links": [
+  "navigation": {
+    "groups": [
       {
-        "title": "SINT Labs",
-        "links": [
-          {
-            "label": "Homepage",
-            "url": "https://sint.gg"
-          },
-          {
-            "label": "Studio",
-            "url": "https://sint.gg/studio"
-          },
-          {
-            "label": "Work",
-            "url": "https://sint.gg/work"
-          },
-          {
-            "label": "About",
-            "url": "https://sint.gg/about"
-          },
-          {
-            "label": "Contact",
-            "url": "https://sint.gg/contact"
-          }
+        "group": "Getting Started",
+        "pages": [
+          "introduction",
+          "quickstart",
+          "architecture",
+          "facts"
         ]
       },
       {
-        "title": "Protocol",
-        "links": [
-          {
-            "label": "Whitepaper",
-            "url": "https://github.com/sint-ai/sint-protocol/blob/main/WHITEPAPER.md"
-          },
-          {
-            "label": "GitHub",
-            "url": "https://github.com/sint-ai/sint-protocol"
-          },
-          {
-            "label": "arXiv",
-            "url": "https://arxiv.org/"
-          }
+        "group": "Protocol",
+        "pages": [
+          "protocol/overview",
+          "protocol/whitepaper",
+          "protocol/spec",
+          "protocol/tiers",
+          "protocol/invariants",
+          "protocol/csml",
+          "protocol/bridges",
+          "protocol/compliance",
+          "protocol/threat-model",
+          "protocol/conformance"
         ]
       },
       {
-        "title": "Legal",
-        "links": [
-          {
-            "label": "Licenses",
-            "url": "/legal/licenses"
-          },
-          {
-            "label": "Security",
-            "url": "/legal/security"
-          },
-          {
-            "label": "Privacy",
-            "url": "/legal/privacy"
-          }
+        "group": "Products",
+        "pages": [
+          "products/overview",
+          "products/os",
+          "products/console",
+          "products/avatars",
+          "products/operators",
+          "products/cmo-operator"
         ]
+      },
+      {
+        "group": "Developers",
+        "pages": [
+          "developers/quickstart",
+          "developers/sdks",
+          "developers/api-reference",
+          "developers/deployment",
+          "developers/contributing"
+        ]
+      },
+      {
+        "group": "Resources",
+        "pages": [
+          "roadmap",
+          "changelog",
+          "faq",
+          "presskit"
+        ]
+      },
+      {
+        "group": "Archive",
+        "pages": [
+          "archive/notice",
+          "archive/2025-whitepaper",
+          "archive/web3-platform",
+          "archive/partnerships"
+        ]
+      },
+      {
+        "group": "Legal",
+        "pages": [
+          "legal/licenses",
+          "legal/security",
+          "legal/privacy"
+        ]
+      }
+    ],
+    "tabs": [
+      {
+        "tab": "Protocol",
+        "href": "/protocol"
+      },
+      {
+        "tab": "Products",
+        "href": "/products"
+      },
+      {
+        "tab": "Developers",
+        "href": "/developers"
       }
     ]
   },
-  "analytics": {
-    "plausible": {
-      "domain": "docs.sint.gg"
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/sint-ai/sint-protocol"
+      },
+      {
+        "label": "sint.gg",
+        "href": "https://sint.gg"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Whitepaper",
+      "href": "https://github.com/sint-ai/sint-protocol/blob/main/WHITEPAPER.md"
     }
   },
-  "seo": {
-    "indexHiddenPages": false
+  "footer": {
+    "socials": {
+      "github": "https://github.com/sint-ai",
+      "x": "https://x.com/sintlabs",
+      "linkedin": "https://www.linkedin.com/company/sintlabs",
+      "discord": "https://discord.gg/cYyeqVQ5j4"
+    }
   },
   "redirects": [
     {
