@@ -10,8 +10,7 @@
   "favicon": "/favicon.png",
   "logo": {
     "light": "/logo/sint-logo-dark.svg",
-    "dark": "/logo/sint-logo-light.svg",
-    "href": "/introduction"
+    "dark": "/logo/sint-logo-light.svg"
   },
   "navigation": {
     "groups": [
@@ -131,7 +130,7 @@
     {
       "source": "/",
       "destination": "/introduction",
-      "permanent": false
+      "permanent": true
     },
     {
       "source": "/sint-os",
@@ -378,16 +377,6 @@
     "color": {
       "dark": "#02030B",
       "light": "#FAFAF7"
-    }
-  },
-  "fonts": {
-    "heading": {
-      "family": "Titillium Web",
-      "weight": 600
-    },
-    "body": {
-      "family": "Titillium Web",
-      "weight": 400
     }
   }
 }
